@@ -168,16 +168,12 @@ export function AllSourceSummary({ rows, sources, columnMeta = [] }: Props) {
         columns: [
           helper.accessor("total_pipeline", {
             id: "total_pipeline",
-            header: () => (
-              <InfoTooltip
-                title="Total Pipeline (Period)"
-                description="Sum of Self-Gen, SDR, Channel, and Marketing Pipeline $ for this AE in the selected period."
-              >
-                <span className="cursor-help underline decoration-dotted decoration-muted-foreground/40 underline-offset-2">
-                  Pipeline
-                </span>
-              </InfoTooltip>
-            ),
+            header: () =>
+              withTooltip(
+                metaById.get("S1-COL-L"),
+                "Total Pipeline",
+                "Pipeline",
+              ),
             cell: (c) => {
               const rowIdx = idxByRow.get(c.row.original.ae_id || c.row.original.ae_name) ?? 0;
               return (

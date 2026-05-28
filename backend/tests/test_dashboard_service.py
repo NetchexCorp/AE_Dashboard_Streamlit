@@ -48,6 +48,7 @@ def test_kpi_percent_uses_average() -> None:
 def test_all_source_summary_per_row() -> None:
     df = pd.DataFrame([
         _row("A", "M", **{
+            "S1-COL-L": 380,
             "S6-COL-AF": 100, "S6-COL-AM": 50,
             "S6-COL-AH": 200, "S6-COL-AN": 75,
             "S6-COL-AJ": 0, "S6-COL-AO": 0,
@@ -57,7 +58,7 @@ def test_all_source_summary_per_row() -> None:
     ])
     resp = build_dashboard_response(df, period_start=date(2026, 5, 1), period_end=date(2026, 5, 31))
     row = resp.all_source_summary[0]
-    assert row.total_pipeline == 350  # 100+200+0+50
+    assert row.total_pipeline == 380  # from S1-COL-L (SOQL), not summed from sources
     assert row.total_bookings == 150
     by_label = {s.label: s for s in row.sources}
     assert by_label["Self Gen"].pipeline == 100

@@ -24,6 +24,7 @@ from app.services.column_meta import (
     KPI_ROW_1,
     KPI_ROW_2,
     TOTAL_BOOKINGS_COL,
+    TOTAL_PIPELINE_COL,
     format_hint,
 )
 from app.services.roster_service import get_roster_service
@@ -64,13 +65,7 @@ def resolve_filter_params(
 
 
 def _all_source_summary_row(ae_id: str, ae_name: str, ae_manager: str, row: dict) -> AllSourceSummaryRow:
-    pipeline_cols = [p for _, p, _ in ALL_SOURCE_SUMMARY if p]
-    total_pipeline_vals = [_safe_float(row.get(c)) for c in pipeline_cols]
-    has_any = any(v is not None for v in total_pipeline_vals)
-    total_pipeline = (
-        sum(v for v in total_pipeline_vals if v is not None) if has_any else None
-    )
-
+    total_pipeline = _safe_float(row.get(TOTAL_PIPELINE_COL))
     total_bookings = _safe_float(row.get(TOTAL_BOOKINGS_COL))
 
     sources = [

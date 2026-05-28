@@ -896,6 +896,59 @@ WHERE Opportunity.StageName = 'Closed/Won'
 )
 
 # ============================================================
+# SECTION 6 (cont.) — Others Pipeline  [S6-COL-AQ, S6-COL-AR]
+# ============================================================
+# "Others" = AE is split-credited, Net New, but NOT Self-Gen, SDR, Channel, or Marketing.
+# Uses ae_user_id directly (per-AE, not batchable) because the NOT CreatedById filter
+# needs the AE's own ID at query time.
+
+S6_COL_AQ = SOQLEntry(
+    col_id="S6-COL-AQ",
+    display_name="Others Pipeline $ (Period)",
+    section="Others",
+    description="Pipeline dollars (split-credited) from Net New opportunities attributed to the AE that are not Self-Gen, SDR, Channel Partner, or Marketing.",
+    aggregation="SUM(SplitAmount)",
+    time_filter=True,
+    template="""
+SELECT SUM(SplitAmount) total
+FROM OpportunitySplit
+WHERE SplitOwnerId = '{ae_user_id}'
+  AND Opportunity.Revenue_Type__c = 'Net New'
+  AND Opportunity.CreatedDate >= {time_start}
+  AND Opportunity.CreatedDate <= {time_end}
+  AND Opportunity.CreatedById != '{ae_user_id}'
+  AND (Opportunity.Opportunity_Source_Category__c != 'Self-Generated'
+       OR Opportunity.Opportunity_Source_Team__c != 'Sales Development')
+  AND NOT (Opportunity.Opportunity_Source__c LIKE '%Partner%')
+  AND Opportunity.Opportunity_Source_Category__c != 'Marketing'
+""",
+)
+
+S6_COL_AR = SOQLEntry(
+    col_id="S6-COL-AR",
+    display_name="Others Bookings $ (Period)",
+    section="Others",
+    description="Closed-won revenue (split-credited) from Net New opportunities attributed to the AE that are not Self-Gen, SDR, Channel Partner, or Marketing, with a Close Date in the selected period.",
+    aggregation="SUM(SplitAmount)",
+    time_filter=True,
+    template="""
+SELECT SUM(SplitAmount) total
+FROM OpportunitySplit
+WHERE SplitOwnerId = '{ae_user_id}'
+  AND Opportunity.StageName = 'Closed/Won'
+  AND Opportunity.Revenue_Type__c = 'Net New'
+  AND SplitType.MasterLabel = 'Revenue'
+  AND Opportunity.CreatedById != '{ae_user_id}'
+  AND (Opportunity.Opportunity_Source_Category__c != 'Self-Generated'
+       OR Opportunity.Opportunity_Source_Team__c != 'Sales Development')
+  AND NOT (Opportunity.Opportunity_Source__c LIKE '%Partner%')
+  AND Opportunity.Opportunity_Source_Category__c != 'Marketing'
+  AND Opportunity.CloseDate >= {time_start_date}
+  AND Opportunity.CloseDate <= {time_end_date}
+""",
+)
+
+# ============================================================
 # SECTION 5 — Marketing  [S5-COL-AB through S5-COL-AD]
 # ============================================================
 
@@ -978,6 +1031,8 @@ ALL_COLUMNS: list[SOQLEntry] = [
     S6_COL_AJ, S6_COL_AO, S6_COL_AI, S4_COL_X, S4_COL_Y, S4_COL_Z, S4_COL_AA,
     # Section 5 — Marketing: Pipeline $, Bookings $, Opps, Events, Inbound, Other
     S6_COL_AL, S6_COL_AP, S6_COL_AK, S5_COL_AB, S5_COL_AC, S5_COL_AD,
+    # Others: Pipeline $, Bookings $
+    S6_COL_AQ, S6_COL_AR,
 ]
 
 COLUMN_BY_ID: dict[str, SOQLEntry] = {c.col_id: c for c in ALL_COLUMNS}
@@ -988,4 +1043,5 @@ SECTIONS: list[str] = [
     "SDR Activity",
     "Channel Partners",
     "Marketing",
+    "Others",
 ]

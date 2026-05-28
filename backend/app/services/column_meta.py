@@ -19,6 +19,7 @@ SECTION_DISPLAY_NAMES: dict[str, str] = {
     "SDR Activity": "SDR Activity for This Rep",
     "Channel Partners": "Channel Partners",
     "Marketing": "Marketing",
+    "Others": "Others (not Self-Gen, SDR, Channel, or Marketing)",
 }
 
 CURRENCY_COLS: set[str] = {
@@ -39,6 +40,8 @@ CURRENCY_COLS: set[str] = {
     "S6-COL-AN",
     "S6-COL-AO",
     "S6-COL-AP",
+    "S6-COL-AQ",
+    "S6-COL-AR",
 }
 PERCENT_COLS: set[str] = {"S1-COL-E", "S1-COL-H"}
 LOWER_IS_BETTER: set[str] = {"S1-COL-N"}
@@ -49,7 +52,9 @@ ALL_SOURCE_SUMMARY: list[tuple[str, str, str]] = [
     ("SDR", "S6-COL-AH", "S6-COL-AN"),
     ("Channel", "S6-COL-AJ", "S6-COL-AO"),
     ("Marketing", "S6-COL-AL", "S6-COL-AP"),
+    ("Others", "S6-COL-AQ", "S6-COL-AR"),
 ]
+TOTAL_PIPELINE_COL = "S1-COL-L"  # Pipeline $ Created (Period)
 TOTAL_BOOKINGS_COL = "S1-COL-M"  # Total Closed Won (Period)
 
 
