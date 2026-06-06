@@ -23,14 +23,21 @@ export default defineConfig(({ mode }) => ({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
+        manualChunks(id) {
           // React core — used everywhere, ships in initial bundle.
-          "react-vendor": ["react", "react-dom"],
+          if (
+            id.includes("node_modules/react/") ||
+            id.includes("node_modules/react-dom/")
+          ) {
+            return "react-vendor";
+          }
           // TanStack libs are big enough to warrant their own chunk.
-          tanstack: [
-            "@tanstack/react-query",
-            "@tanstack/react-router",
-          ],
+          if (
+            id.includes("node_modules/@tanstack/react-query/") ||
+            id.includes("node_modules/@tanstack/react-router/")
+          ) {
+            return "tanstack";
+          }
         },
       },
     },
