@@ -54,8 +54,9 @@ ALL_SOURCE_SUMMARY: list[tuple[str, str, str]] = [
     ("Marketing", "S6-COL-AL", "S6-COL-AP"),
     ("Others", "S6-COL-AQ", "S6-COL-AR"),
 ]
-TOTAL_PIPELINE_COL = "S1-COL-L"  # Pipeline $ Created (Period)
-TOTAL_BOOKINGS_COL = "S1-COL-M"  # Total Closed Won (Period)
+TOTAL_PIPELINE_COL = "S1-COL-L"      # Pipeline $ Created (Period)
+TOTAL_OPEN_PIPELINE_COL = "S1-COL-I"  # Open Pipeline This Month
+TOTAL_BOOKINGS_COL = "S1-COL-M"      # Total Closed Won (Period)
 
 
 def format_hint(col_id: str) -> FormatHint:

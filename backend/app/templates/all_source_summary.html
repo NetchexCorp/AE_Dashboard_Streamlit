@@ -33,7 +33,8 @@
         <tr>
           <th>AE</th>
           <th>Manager</th>
-          <th>Total Pipeline</th>
+          <th>Pipeline Generated</th>
+          <th>Open Pipeline</th>
           <th>Total Bookings</th>
           {% for s in sources %}
             <th>{{ s.label }} Pipeline</th>
@@ -47,6 +48,7 @@
             <td>{{ row.ae_name }}</td>
             <td>{{ row.ae_manager }}</td>
             <td>{{ row.total_pipeline | money }}</td>
+            <td>{{ row.open_pipeline | money }}</td>
             <td>{{ row.total_bookings | money }}</td>
             {% for cell in row.sources %}
               <td>{{ cell.pipeline | money }}</td>

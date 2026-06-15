@@ -67,9 +67,15 @@ export function AEDrillDownDrawer() {
                   </h3>
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm">
-                      <span className="font-medium">Total Pipeline (Period)</span>
+                      <span className="font-medium">Pipeline Generated (Period)</span>
                       <span className="tabular-nums">
                         {fmt(detail.data.all_source_summary.total_pipeline, "currency")}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm">
+                      <span className="font-medium">Open Pipeline (This Month)</span>
+                      <span className="tabular-nums">
+                        {fmt(detail.data.all_source_summary.open_pipeline, "currency")}
                       </span>
                     </div>
                     <div className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm">

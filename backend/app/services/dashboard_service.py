@@ -24,6 +24,7 @@ from app.services.column_meta import (
     KPI_ROW_1,
     KPI_ROW_2,
     TOTAL_BOOKINGS_COL,
+    TOTAL_OPEN_PIPELINE_COL,
     TOTAL_PIPELINE_COL,
     format_hint,
 )
@@ -66,6 +67,7 @@ def resolve_filter_params(
 
 def _all_source_summary_row(ae_id: str, ae_name: str, ae_manager: str, row: dict) -> AllSourceSummaryRow:
     total_pipeline = _safe_float(row.get(TOTAL_PIPELINE_COL))
+    open_pipeline = _safe_float(row.get(TOTAL_OPEN_PIPELINE_COL))
     total_bookings = _safe_float(row.get(TOTAL_BOOKINGS_COL))
 
     sources = [
@@ -81,6 +83,7 @@ def _all_source_summary_row(ae_id: str, ae_name: str, ae_manager: str, row: dict
         ae_name=ae_name,
         ae_manager=ae_manager,
         total_pipeline=total_pipeline,
+        open_pipeline=open_pipeline,
         total_bookings=total_bookings,
         sources=sources,
     )

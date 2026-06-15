@@ -27,6 +27,7 @@ class AllSourceSummaryRow(BaseModel):
     ae_name: str
     ae_manager: str
     total_pipeline: float | None
+    open_pipeline: float | None
     total_bookings: float | None
     # one entry per source — label kept here so the front-end is decoupled
     sources: list["AllSourceSummaryCell"]

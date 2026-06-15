@@ -77,12 +77,13 @@ export function AllSourceSummary({ rows, sources, columnMeta = [] }: Props) {
 
   const norms = useMemo(() => {
     const tp = normalizeColumn(rows.map((r) => r.total_pipeline));
+    const op = normalizeColumn(rows.map((r) => r.open_pipeline));
     const tb = normalizeColumn(rows.map((r) => r.total_bookings));
     const perSource = sources.map((_, i) => ({
       p: normalizeColumn(rows.map((r) => r.sources[i]?.pipeline ?? null)),
       b: normalizeColumn(rows.map((r) => r.sources[i]?.bookings ?? null)),
     }));
-    return { tp, tb, perSource };
+    return { tp, op, tb, perSource };
   }, [rows, sources]);
 
   const idxByRow = useMemo(() => {
@@ -171,13 +172,29 @@ export function AllSourceSummary({ rows, sources, columnMeta = [] }: Props) {
             header: () =>
               withTooltip(
                 metaById.get("S1-COL-L"),
-                "Total Pipeline",
-                "Pipeline",
+                "Pipeline Generated",
+                "Pipeline Generated",
               ),
             cell: (c) => {
               const rowIdx = idxByRow.get(c.row.original.ae_id || c.row.original.ae_name) ?? 0;
               return (
                 <HeatedNumber value={c.getValue() as number | null} norm={norms.tp[rowIdx]} />
+              );
+            },
+            sortingFn: numericSort,
+          }),
+          helper.accessor("open_pipeline", {
+            id: "open_pipeline",
+            header: () =>
+              withTooltip(
+                metaById.get("S1-COL-I"),
+                "Open Pipeline",
+                "Open Pipeline",
+              ),
+            cell: (c) => {
+              const rowIdx = idxByRow.get(c.row.original.ae_id || c.row.original.ae_name) ?? 0;
+              return (
+                <HeatedNumber value={c.getValue() as number | null} norm={norms.op[rowIdx]} />
               );
             },
             sortingFn: numericSort,
