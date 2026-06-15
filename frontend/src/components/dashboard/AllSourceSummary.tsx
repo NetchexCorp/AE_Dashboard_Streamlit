@@ -10,11 +10,6 @@ import type {
 } from "@/types/dashboard";
 import { useFilters } from "@/hooks/useFilters";
 import { fmt } from "@/lib/formatters";
-import {
-  edgeMarkerColor,
-  lightHeatmapColor,
-  normalizeColumn,
-} from "@/lib/heatmap";
 import { DataTable } from "@/components/tables/DataTable";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { cn } from "@/lib/cn";
@@ -47,21 +42,9 @@ function withTooltip(
 
 const helper = createColumnHelper<AllSourceSummaryRow>();
 
-function HeatedNumber({
-  value,
-  norm,
-}: {
-  value: number | null;
-  norm: number | null;
-}) {
+function PlainNumber({ value }: { value: number | null }) {
   return (
-    <span
-      className="block w-full rounded border-l-[3px] px-1.5 py-0.5 text-right tabular-nums"
-      style={{
-        backgroundColor: lightHeatmapColor(norm),
-        borderLeftColor: edgeMarkerColor(norm),
-      }}
-    >
+    <span className="block w-full px-1.5 py-0.5 text-right tabular-nums">
       {fmt(value, "currency")}
     </span>
   );
@@ -75,45 +58,13 @@ export function AllSourceSummary({ rows, sources, columnMeta = [] }: Props) {
     return m;
   }, [columnMeta]);
 
-  const norms = useMemo(() => {
-    const tp = normalizeColumn(rows.map((r) => r.total_pipeline));
-    const op = normalizeColumn(rows.map((r) => r.open_pipeline));
-    const tb = normalizeColumn(rows.map((r) => r.total_bookings));
-    const perSource = sources.map((_, i) => ({
-      p: normalizeColumn(rows.map((r) => r.sources[i]?.pipeline ?? null)),
-      b: normalizeColumn(rows.map((r) => r.sources[i]?.bookings ?? null)),
-    }));
-    return { tp, op, tb, perSource };
-  }, [rows, sources]);
-
-  const idxByRow = useMemo(() => {
-    const m = new Map<string, number>();
-    rows.forEach((r, i) => m.set(r.ae_id || r.ae_name, i));
-    return m;
-  }, [rows]);
-
   const columns = useMemo<ColumnDef<AllSourceSummaryRow, unknown>[]>(() => {
+    // Per-source columns follow the headline order: Bookings, then Pipeline.
     const sourceGroups = sources.map((s, i) =>
       helper.group({
         id: `src-${s.label}`,
         header: () => <span className="text-foreground">{s.label}</span>,
         columns: [
-          helper.accessor((r) => r.sources[i]?.pipeline ?? null, {
-            id: `${s.label}-p`,
-            header: () =>
-              withTooltip(
-                metaById.get(s.pipeline_col),
-                `${s.label} Pipeline`,
-                "Pipeline",
-              ),
-            cell: (c) => {
-              const rowIdx = idxByRow.get(c.row.original.ae_id || c.row.original.ae_name) ?? 0;
-              return (
-                <HeatedNumber value={c.getValue() as number | null} norm={norms.perSource[i].p[rowIdx]} />
-              );
-            },
-            sortingFn: numericSort,
-          }),
           helper.accessor((r) => r.sources[i]?.bookings ?? null, {
             id: `${s.label}-b`,
             header: () =>
@@ -122,19 +73,24 @@ export function AllSourceSummary({ rows, sources, columnMeta = [] }: Props) {
                 `${s.label} Bookings`,
                 "Bookings",
               ),
-            cell: (c) => {
-              const rowIdx = idxByRow.get(c.row.original.ae_id || c.row.original.ae_name) ?? 0;
-              return (
-                <HeatedNumber value={c.getValue() as number | null} norm={norms.perSource[i].b[rowIdx]} />
-              );
-            },
+            cell: (c) => <PlainNumber value={c.getValue() as number | null} />,
+            sortingFn: numericSort,
+          }),
+          helper.accessor((r) => r.sources[i]?.pipeline ?? null, {
+            id: `${s.label}-p`,
+            header: () =>
+              withTooltip(
+                metaById.get(s.pipeline_col),
+                `${s.label} Pipeline`,
+                "Pipeline",
+              ),
+            cell: (c) => <PlainNumber value={c.getValue() as number | null} />,
             sortingFn: numericSort,
           }),
         ],
       }),
     );
 
-    void metaById; // referenced via withTooltip
     return [
       helper.accessor("ae_name", {
         id: "ae",
@@ -167,20 +123,15 @@ export function AllSourceSummary({ rows, sources, columnMeta = [] }: Props) {
         id: "totals",
         header: () => <span className="text-foreground">Totals (Period)</span>,
         columns: [
-          helper.accessor("total_pipeline", {
-            id: "total_pipeline",
+          helper.accessor("total_bookings", {
+            id: "total_bookings",
             header: () =>
               withTooltip(
-                metaById.get("S1-COL-L"),
-                "Pipeline Generated",
-                "Pipeline Generated",
+                metaById.get("S1-COL-M"),
+                "Bookings in time period",
+                "Bookings in time period",
               ),
-            cell: (c) => {
-              const rowIdx = idxByRow.get(c.row.original.ae_id || c.row.original.ae_name) ?? 0;
-              return (
-                <HeatedNumber value={c.getValue() as number | null} norm={norms.tp[rowIdx]} />
-              );
-            },
+            cell: (c) => <PlainNumber value={c.getValue() as number | null} />,
             sortingFn: numericSort,
           }),
           helper.accessor("open_pipeline", {
@@ -188,38 +139,43 @@ export function AllSourceSummary({ rows, sources, columnMeta = [] }: Props) {
             header: () =>
               withTooltip(
                 metaById.get("S1-COL-I"),
-                "Open Pipeline",
-                "Open Pipeline",
+                "Open Pipeline with Current Month Close",
+                "Open Pipeline with Current Month Close",
               ),
             cell: (c) => {
-              const rowIdx = idxByRow.get(c.row.original.ae_id || c.row.original.ae_name) ?? 0;
+              const value = c.getValue() as number | null;
+              const needed = c.row.original.open_pipeline_needed;
+              // Red when open pipeline is short of what's needed to hit quota.
+              const short = value != null && needed != null && value < needed;
               return (
-                <HeatedNumber value={c.getValue() as number | null} norm={norms.op[rowIdx]} />
+                <span
+                  className={cn(
+                    "block w-full px-1.5 py-0.5 text-right tabular-nums",
+                    short && "font-semibold text-red-600",
+                  )}
+                >
+                  {fmt(value, "currency")}
+                </span>
               );
             },
             sortingFn: numericSort,
           }),
-          helper.accessor("total_bookings", {
-            id: "total_bookings",
+          helper.accessor("total_pipeline", {
+            id: "total_pipeline",
             header: () =>
               withTooltip(
-                metaById.get("S1-COL-M"),
-                "Total Bookings",
-                "Bookings",
+                metaById.get("S1-COL-L"),
+                "Pipeline generated in time period",
+                "Pipeline generated in time period",
               ),
-            cell: (c) => {
-              const rowIdx = idxByRow.get(c.row.original.ae_id || c.row.original.ae_name) ?? 0;
-              return (
-                <HeatedNumber value={c.getValue() as number | null} norm={norms.tb[rowIdx]} />
-              );
-            },
+            cell: (c) => <PlainNumber value={c.getValue() as number | null} />,
             sortingFn: numericSort,
           }),
         ],
       }),
       ...sourceGroups,
     ];
-  }, [sources, norms, idxByRow, set]);
+  }, [sources, metaById, set]);
 
   return (
     <section>

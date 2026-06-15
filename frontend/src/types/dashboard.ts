@@ -68,6 +68,7 @@ export interface AllSourceSummaryRow {
   ae_manager: string;
   total_pipeline: number | null;
   open_pipeline: number | null;
+  open_pipeline_needed: number | null;
   total_bookings: number | null;
   sources: AllSourceSummaryCell[];
 }

@@ -3,6 +3,9 @@ import { X } from "lucide-react";
 import { useFilters } from "@/hooks/useFilters";
 import { useAeDetail, useColumnMeta } from "@/hooks/useDashboard";
 import { fmt } from "@/lib/formatters";
+import { cn } from "@/lib/cn";
+import { OPEN_PIPELINE_COL, OPEN_PIPELINE_NEEDED_COL } from "@/lib/columns";
+import { orderedSectionColumns } from "@/lib/sections";
 
 export function AEDrillDownDrawer() {
   const { filters, set } = useFilters();
@@ -67,21 +70,35 @@ export function AEDrillDownDrawer() {
                   </h3>
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm">
-                      <span className="font-medium">Pipeline Generated (Period)</span>
-                      <span className="tabular-nums">
-                        {fmt(detail.data.all_source_summary.total_pipeline, "currency")}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm">
-                      <span className="font-medium">Open Pipeline (This Month)</span>
-                      <span className="tabular-nums">
-                        {fmt(detail.data.all_source_summary.open_pipeline, "currency")}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm">
-                      <span className="font-medium">Total Bookings (Period)</span>
+                      <span className="font-medium">Bookings in time period</span>
                       <span className="tabular-nums">
                         {fmt(detail.data.all_source_summary.total_bookings, "currency")}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm">
+                      <span className="font-medium">Open Pipeline with Current Month Close</span>
+                      {(() => {
+                        const ass = detail.data.all_source_summary;
+                        const short =
+                          ass.open_pipeline != null &&
+                          ass.open_pipeline_needed != null &&
+                          ass.open_pipeline < ass.open_pipeline_needed;
+                        return (
+                          <span
+                            className={cn(
+                              "tabular-nums",
+                              short && "font-semibold text-red-600",
+                            )}
+                          >
+                            {fmt(ass.open_pipeline, "currency")}
+                          </span>
+                        );
+                      })()}
+                    </div>
+                    <div className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm">
+                      <span className="font-medium">Pipeline generated in time period</span>
+                      <span className="tabular-nums">
+                        {fmt(detail.data.all_source_summary.total_pipeline, "currency")}
                       </span>
                     </div>
                     {detail.data.all_source_summary.sources.map((s) => (
@@ -110,8 +127,9 @@ export function AEDrillDownDrawer() {
                     </h3>
                     <div className="space-y-3">
                       {cols.data.sections.map((sec) => {
-                        const secCols = cols.data!.columns.filter(
-                          (c) => c.section === sec.key,
+                        const secCols = orderedSectionColumns(
+                          cols.data!.columns,
+                          sec.key,
                         );
                         return (
                           <details key={sec.key} className="rounded-md border border-border">
@@ -119,21 +137,34 @@ export function AEDrillDownDrawer() {
                               {sec.display_name}
                             </summary>
                             <dl className="grid grid-cols-2 gap-x-4 gap-y-1 px-3 py-3 text-xs">
-                              {secCols.map((c) => (
-                                <div
-                                  key={c.col_id}
-                                  className="flex items-center justify-between border-b border-border/40 py-1"
-                                >
-                                  <dt className="truncate text-muted-foreground" title={c.description}>
-                                    {c.display_name}
-                                  </dt>
-                                  <dd className="tabular-nums">
-                                    {c.blocked
-                                      ? "Pending"
-                                      : fmt(detail.data!.values[c.col_id], c.format)}
-                                  </dd>
-                                </div>
-                              ))}
+                              {secCols.map((c) => {
+                                const value = detail.data!.values[c.col_id];
+                                const needed =
+                                  detail.data!.values[OPEN_PIPELINE_NEEDED_COL];
+                                const short =
+                                  c.col_id === OPEN_PIPELINE_COL &&
+                                  value != null &&
+                                  needed != null &&
+                                  value < needed;
+                                return (
+                                  <div
+                                    key={c.col_id}
+                                    className="flex items-center justify-between border-b border-border/40 py-1"
+                                  >
+                                    <dt className="truncate text-muted-foreground" title={c.description}>
+                                      {c.display_name}
+                                    </dt>
+                                    <dd
+                                      className={cn(
+                                        "tabular-nums",
+                                        short && "font-semibold text-red-600",
+                                      )}
+                                    >
+                                      {c.blocked ? "Pending" : fmt(value, c.format)}
+                                    </dd>
+                                  </div>
+                                );
+                              })}
                             </dl>
                           </details>
                         );

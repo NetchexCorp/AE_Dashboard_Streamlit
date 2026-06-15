@@ -2,7 +2,7 @@ import { useParams } from "@tanstack/react-router";
 import { SectionTable } from "@/components/dashboard/SectionTable";
 import { useColumnMeta, useDashboard } from "@/hooks/useDashboard";
 import { useFilters } from "@/hooks/useFilters";
-import { sectionBySlug } from "@/lib/sections";
+import { orderedSectionColumns, sectionBySlug } from "@/lib/sections";
 
 export function DashboardSectionRoute() {
   const params = useParams({ strict: false }) as { slug?: string };
@@ -41,7 +41,7 @@ export function DashboardSectionRoute() {
   return (
     <SectionTable
       section={section}
-      columns={cols.data.columns.filter((c) => c.section === def.key)}
+      columns={orderedSectionColumns(cols.data.columns, def.key)}
       rows={dash.data.rows}
     />
   );

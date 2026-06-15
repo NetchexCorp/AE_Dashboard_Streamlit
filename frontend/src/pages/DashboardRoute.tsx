@@ -17,9 +17,6 @@ function pageMeta(pathname: string): PageMeta {
   if (pathname.startsWith("/dashboard/charts")) {
     return { title: "Charts", subtitle: "Bookings + attainment by AE" };
   }
-  if (pathname.startsWith("/dashboard/heatmap")) {
-    return { title: "Performance Heatmap", subtitle: "Per-column normalized" };
-  }
   const sectionMatch = pathname.match(/^\/dashboard\/section\/([^/]+)/);
   if (sectionMatch) {
     const def = SECTION_DEFS.find((s) => s.slug === sectionMatch[1]);

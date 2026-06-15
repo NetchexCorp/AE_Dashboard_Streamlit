@@ -262,7 +262,7 @@ S1_COL_H = SOQLEntry(
 
 S1_COL_I = SOQLEntry(
     col_id="S1-COL-I",
-    display_name="Open Pipeline (This Month)",
+    display_name="Open Pipeline with Current Month Close",
     section="Pipeline & Quota",
     description="Open Net New pipeline dollars (split-credited) with a Close Date in the current calendar month.",
     aggregation="SUM(SplitAmount)",
@@ -316,9 +316,9 @@ WHERE {owner_clause}
 
 S1_COL_L = SOQLEntry(
     col_id="S1-COL-L",
-    display_name="Pipeline $ Created (Period)",
+    display_name="Pipeline generated in time period",
     section="Pipeline & Quota",
-    description="Total Net New pipeline dollars (split-credited) from opportunities created in the selected period.",
+    description="Total Net New pipeline dollars (split-credited) generated in the selected period.",
     aggregation="SUM(SplitAmount)",
     time_filter=True,
     template="""
@@ -334,7 +334,7 @@ WHERE {owner_clause}
 
 S1_COL_M = SOQLEntry(
     col_id="S1-COL-M",
-    display_name="Total Closed Won (Period)",
+    display_name="Bookings in time period",
     section="Pipeline & Quota",
     description="Total Net New closed-won revenue (split-credited) with a Close Date in the selected period.",
     aggregation="SUM(SplitAmount)",
@@ -366,6 +366,17 @@ WHERE Opportunity.StageName = 'Closed/Lost'
   AND Opportunity.CloseDate >= {time_start_date}
   AND Opportunity.CloseDate <= {time_end_date}
 """,
+)
+
+S1_COL_O = SOQLEntry(
+    col_id="S1-COL-O",
+    display_name="Open Pipeline Needed to Quota with Current Month Close",
+    section="Pipeline & Quota",
+    description="Open pipeline still required to hit this month's quota — (Quota with current-month close − Bookings with current-month close) × 3, floored at zero.",
+    aggregation="MAX(0, (F - G) * 3)",
+    time_filter=False,
+    computed=True,
+    template="",
 )
 
 # ============================================================
@@ -1022,7 +1033,7 @@ WHERE {activity_owner_clause}
 ALL_COLUMNS: list[SOQLEntry] = [
     # Section 1 — Pipeline & Quota
     S1_COL_C, S1_COL_D, S1_COL_E, S1_COL_F, S1_COL_G, S1_COL_H,
-    S1_COL_I, S1_COL_J, S1_COL_K, S1_COL_L, S1_COL_M, S1_COL_N,
+    S1_COL_I, S1_COL_J, S1_COL_K, S1_COL_L, S1_COL_M, S1_COL_N, S1_COL_O,
     # Section 2 — Self-Gen: Pipeline $, Bookings $, Opps, Emails, Calls, Voicemail, Foot Canvass, Net New
     S6_COL_AF, S6_COL_AM, S6_COL_AE, S2_COL_O, S2_COL_P, S2_COL_Q, S2_COL_R, S2_COL_S,
     # Section 3 — SDR: Pipeline $, Bookings $, Opps, Emails, Calls, Mtgs Scheduled, Mtgs Held

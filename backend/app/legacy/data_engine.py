@@ -120,6 +120,8 @@ def fetch_all_columns(sf, params: dict, overrides: dict | None = None) -> dict[s
     g = results.get("S1-COL-G") or 0
     results["S1-COL-E"] = (d / c) if c else None
     results["S1-COL-H"] = (g / f) if f else None
+    # Open pipeline needed to hit this month's quota: (quota MTD − bookings MTD) × 3, floored at 0.
+    results["S1-COL-O"] = max(0.0, (f - g) * 3)
     return results
 
 
@@ -330,6 +332,8 @@ def build_dashboard_dataframe(sf, params: dict, overrides: dict | None = None) -
         g = row.get("S1-COL-G") or 0
         row["S1-COL-E"] = (d / c) if c else None
         row["S1-COL-H"] = (g / f) if f else None
+        # Open pipeline needed to hit this month's quota: (quota MTD − bookings MTD) × 3, floored at 0.
+        row["S1-COL-O"] = max(0.0, (f - g) * 3)
         rows.append(row)
 
     df = pd.DataFrame(rows)

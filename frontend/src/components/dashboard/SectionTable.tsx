@@ -7,13 +7,8 @@ import type { AERow, ColumnMeta } from "@/types/dashboard";
 import { DataTable } from "@/components/tables/DataTable";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { useFilters } from "@/hooks/useFilters";
-import { LOWER_IS_BETTER } from "@/lib/columns";
+import { OPEN_PIPELINE_COL, OPEN_PIPELINE_NEEDED_COL } from "@/lib/columns";
 import { fmt } from "@/lib/formatters";
-import {
-  edgeMarkerColor,
-  lightHeatmapColor,
-  normalizeColumn,
-} from "@/lib/heatmap";
 import { cn } from "@/lib/cn";
 
 interface Props {
@@ -30,24 +25,6 @@ export function SectionTable({ section, columns, rows, showHeader = true }: Prop
   const { set } = useFilters();
 
   const numericCols = columns.filter((c) => !c.blocked);
-
-  const norms = useMemo(() => {
-    const out: Record<string, (number | null)[]> = {};
-    for (const c of numericCols) {
-      if (c.computed) continue;
-      out[c.col_id] = normalizeColumn(
-        rows.map((r) => r.values[c.col_id]),
-        LOWER_IS_BETTER.has(c.col_id),
-      );
-    }
-    return out;
-  }, [numericCols, rows]);
-
-  const idxByRow = useMemo(() => {
-    const m = new Map<string, number>();
-    rows.forEach((r, i) => m.set(r.ae_id || r.ae_name, i));
-    return m;
-  }, [rows]);
 
   const tableColumns = useMemo<ColumnDef<AERow, unknown>[]>(() => {
     const defs: ColumnDef<AERow, unknown>[] = [
@@ -95,17 +72,22 @@ export function SectionTable({ section, columns, rows, showHeader = true }: Prop
             if (col.blocked) {
               return <span className="text-xs italic text-muted-foreground/60">Pending</span>;
             }
-            const rowIdx = idxByRow.get(c.row.original.ae_id || c.row.original.ae_name) ?? 0;
-            const norm = norms[col.col_id]?.[rowIdx] ?? null;
+            const value = c.getValue() as number | null;
+            // Open Pipeline turns red when it falls short of what's needed to hit quota.
+            const needed = c.row.original.values[OPEN_PIPELINE_NEEDED_COL];
+            const short =
+              col.col_id === OPEN_PIPELINE_COL &&
+              value != null &&
+              needed != null &&
+              value < needed;
             return (
               <span
-                className="block w-full rounded border-l-[3px] px-1.5 py-0.5 text-right tabular-nums"
-                style={{
-                  backgroundColor: lightHeatmapColor(norm),
-                  borderLeftColor: edgeMarkerColor(norm),
-                }}
+                className={cn(
+                  "block w-full px-1.5 py-0.5 text-right tabular-nums",
+                  short && "font-semibold text-red-600",
+                )}
               >
-                {fmt(c.getValue() as number | null, col.format)}
+                {fmt(value, col.format)}
               </span>
             );
           },
@@ -114,7 +96,7 @@ export function SectionTable({ section, columns, rows, showHeader = true }: Prop
       );
     }
     return defs;
-  }, [numericCols, norms, idxByRow, set]);
+  }, [numericCols, set]);
 
   return (
     <section className="space-y-2">

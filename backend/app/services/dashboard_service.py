@@ -25,6 +25,7 @@ from app.services.column_meta import (
     KPI_ROW_2,
     TOTAL_BOOKINGS_COL,
     TOTAL_OPEN_PIPELINE_COL,
+    TOTAL_OPEN_PIPELINE_NEEDED_COL,
     TOTAL_PIPELINE_COL,
     format_hint,
 )
@@ -65,9 +66,27 @@ def resolve_filter_params(
     return params, start, end
 
 
+def _open_pipeline_needed(row: dict) -> float | None:
+    """Open pipeline needed to hit this month's quota.
+
+    Prefers the value computed by data_engine (S1-COL-O); falls back to deriving
+    it from Quota MTD / Bookings MTD so the figure is available even when the
+    response is built from a dataframe that lacks the computed column.
+    """
+    precomputed = _safe_float(row.get(TOTAL_OPEN_PIPELINE_NEEDED_COL))
+    if precomputed is not None:
+        return precomputed
+    quota_mtd = _safe_float(row.get("S1-COL-F"))
+    bookings_mtd = _safe_float(row.get("S1-COL-G"))
+    if quota_mtd is None and bookings_mtd is None:
+        return None
+    return max(0.0, ((quota_mtd or 0.0) - (bookings_mtd or 0.0)) * 3)
+
+
 def _all_source_summary_row(ae_id: str, ae_name: str, ae_manager: str, row: dict) -> AllSourceSummaryRow:
     total_pipeline = _safe_float(row.get(TOTAL_PIPELINE_COL))
     open_pipeline = _safe_float(row.get(TOTAL_OPEN_PIPELINE_COL))
+    open_pipeline_needed = _open_pipeline_needed(row)
     total_bookings = _safe_float(row.get(TOTAL_BOOKINGS_COL))
 
     sources = [
@@ -84,6 +103,7 @@ def _all_source_summary_row(ae_id: str, ae_name: str, ae_manager: str, row: dict
         ae_manager=ae_manager,
         total_pipeline=total_pipeline,
         open_pipeline=open_pipeline,
+        open_pipeline_needed=open_pipeline_needed,
         total_bookings=total_bookings,
         sources=sources,
     )

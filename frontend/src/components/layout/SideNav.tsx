@@ -32,7 +32,6 @@ const DASHBOARD_SUBNAV: Entry[] = [
     label: s.label,
   })),
   { to: "/dashboard/charts", label: "Charts" },
-  { to: "/dashboard/heatmap", label: "Heatmap" },
 ];
 
 const CONFIG_SUBNAV: Entry[] = [

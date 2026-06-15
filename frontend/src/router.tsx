@@ -7,7 +7,6 @@ import {
 import { AppShell } from "@/components/layout/AppShell";
 import { DashboardRoute } from "@/pages/DashboardRoute";
 import { DashboardChartsRoute } from "@/pages/DashboardChartsRoute";
-import { DashboardHeatmapRoute } from "@/pages/DashboardHeatmapRoute";
 import { DashboardSectionRoute } from "@/pages/DashboardSectionRoute";
 import { DashboardSummaryRoute } from "@/pages/DashboardSummaryRoute";
 import type { FilterSearch } from "@/lib/filterParams";
@@ -60,12 +59,6 @@ const dashboardChartsRoute = createRoute({
   getParentRoute: () => dashboardRoute,
   path: "charts",
   component: DashboardChartsRoute,
-});
-
-const dashboardHeatmapRoute = createRoute({
-  getParentRoute: () => dashboardRoute,
-  path: "heatmap",
-  component: DashboardHeatmapRoute,
 });
 
 const dashboardSectionRoute = createRoute({
@@ -125,7 +118,6 @@ const routeTree = rootRoute.addChildren([
     dashboardIndexRoute,
     dashboardSummaryRoute,
     dashboardChartsRoute,
-    dashboardHeatmapRoute,
     dashboardSectionRoute,
   ]),
   schedulesRoute,

@@ -14,6 +14,9 @@ logger = logging.getLogger(__name__)
 
 _TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
 
+# Public dashboard link surfaced in the email footer.
+DASHBOARD_URL = "https://aedash-ui.bravestone-4e7fe75c.eastus.azurecontainerapps.io/dashboard/summary"
+
 
 def _money(v) -> str:
     if v is None or (isinstance(v, float) and (math.isnan(v) or math.isinf(v))):
@@ -62,4 +65,5 @@ def render_all_source_summary(
         sources=[{"label": s[0]} for s in ALL_SOURCE_SUMMARY],
         ass_rows=[row.model_dump() for row in response.all_source_summary],
         kpis=[k.model_dump() for k in [*response.kpi_row_1, *response.kpi_row_2]],
+        dashboard_url=DASHBOARD_URL,
     )
