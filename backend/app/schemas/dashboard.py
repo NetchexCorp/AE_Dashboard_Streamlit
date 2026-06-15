@@ -27,6 +27,10 @@ class AllSourceSummaryRow(BaseModel):
     ae_name: str
     ae_manager: str
     total_pipeline: float | None
+    open_pipeline: float | None
+    # Open pipeline required to hit this month's quota (floored at 0); drives the
+    # red highlight when open_pipeline falls short of it.
+    open_pipeline_needed: float | None = None
     total_bookings: float | None
     # one entry per source — label kept here so the front-end is decoupled
     sources: list["AllSourceSummaryCell"]

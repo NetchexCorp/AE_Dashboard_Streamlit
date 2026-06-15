@@ -33,11 +33,12 @@
         <tr>
           <th>AE</th>
           <th>Manager</th>
-          <th>Total Pipeline</th>
-          <th>Total Bookings</th>
+          <th>Bookings in time period</th>
+          <th>Open Pipeline with Current Month Close</th>
+          <th>Pipeline generated in time period</th>
           {% for s in sources %}
-            <th>{{ s.label }} Pipeline</th>
             <th>{{ s.label }} Bookings</th>
+            <th>{{ s.label }} Pipeline</th>
           {% endfor %}
         </tr>
       </thead>
@@ -46,11 +47,16 @@
           <tr>
             <td>{{ row.ae_name }}</td>
             <td>{{ row.ae_manager }}</td>
-            <td>{{ row.total_pipeline | money }}</td>
             <td>{{ row.total_bookings | money }}</td>
+            {% if row.open_pipeline is not none and row.open_pipeline_needed is not none and row.open_pipeline < row.open_pipeline_needed %}
+              <td style="color: #dc2626; font-weight: 600;">{{ row.open_pipeline | money }}</td>
+            {% else %}
+              <td>{{ row.open_pipeline | money }}</td>
+            {% endif %}
+            <td>{{ row.total_pipeline | money }}</td>
             {% for cell in row.sources %}
-              <td>{{ cell.pipeline | money }}</td>
               <td>{{ cell.bookings | money }}</td>
+              <td>{{ cell.pipeline | money }}</td>
             {% endfor %}
           </tr>
         {% endfor %}
@@ -73,6 +79,9 @@
 
     <p class="footer">
       AE Performance Dashboard • Automated digest.
+      {% if dashboard_url %}
+        • <a href="{{ dashboard_url }}" style="color: #2563eb;">View the live dashboard</a>
+      {% endif %}
     </p>
   </body>
 </html>

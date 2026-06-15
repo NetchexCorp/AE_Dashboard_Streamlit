@@ -32,6 +32,7 @@ CURRENCY_COLS: set[str] = {
     "S1-COL-L",
     "S1-COL-M",
     "S1-COL-N",
+    "S1-COL-O",
     "S6-COL-AF",
     "S6-COL-AH",
     "S6-COL-AJ",
@@ -54,8 +55,10 @@ ALL_SOURCE_SUMMARY: list[tuple[str, str, str]] = [
     ("Marketing", "S6-COL-AL", "S6-COL-AP"),
     ("Others", "S6-COL-AQ", "S6-COL-AR"),
 ]
-TOTAL_PIPELINE_COL = "S1-COL-L"  # Pipeline $ Created (Period)
-TOTAL_BOOKINGS_COL = "S1-COL-M"  # Total Closed Won (Period)
+TOTAL_PIPELINE_COL = "S1-COL-L"      # Pipeline generated in time period
+TOTAL_OPEN_PIPELINE_COL = "S1-COL-I"  # Open Pipeline with Current Month Close
+TOTAL_OPEN_PIPELINE_NEEDED_COL = "S1-COL-O"  # Open Pipeline Needed to Quota
+TOTAL_BOOKINGS_COL = "S1-COL-M"      # Bookings in time period
 
 
 def format_hint(col_id: str) -> FormatHint:
@@ -76,12 +79,13 @@ KPI_ROW_1: list[tuple[str, bool]] = [
     ("S1-COL-G", False),  # Bookings MTD
     ("S1-COL-H", True),   # Attainment % MTD
 ]
+# Order follows the headline metric sequence: Bookings → Open Pipeline → Pipeline Generated.
 KPI_ROW_2: list[tuple[str, bool]] = [
-    ("S1-COL-K", False),  # Opportunities Created
-    ("S1-COL-L", False),  # Pipeline Created
-    ("S1-COL-I", False),  # Open Pipeline This Month
-    ("S1-COL-J", False),  # Open Pipeline Next Month
-    ("S1-COL-M", False),  # Total Closed Won
+    ("S1-COL-M", False),  # Bookings in time period
+    ("S1-COL-I", False),  # Open Pipeline with Current Month Close
+    ("S1-COL-L", False),  # Pipeline generated in time period
+    ("S1-COL-K", False),  # # Opportunities Created
+    ("S1-COL-J", False),  # Open Pipeline (Next Month)
     ("S1-COL-N", False),  # Total Closed Lost
 ]
 
