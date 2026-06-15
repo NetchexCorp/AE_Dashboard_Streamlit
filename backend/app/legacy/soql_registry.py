@@ -1032,8 +1032,8 @@ WHERE {activity_owner_clause}
 
 ALL_COLUMNS: list[SOQLEntry] = [
     # Section 1 — Pipeline & Quota
-    S1_COL_C, S1_COL_D, S1_COL_E, S1_COL_F, S1_COL_G, S1_COL_H,
-    S1_COL_I, S1_COL_J, S1_COL_K, S1_COL_L, S1_COL_M, S1_COL_N, S1_COL_O,
+    S1_COL_C, S1_COL_D, S1_COL_E, S1_COL_F, S1_COL_G, S1_COL_H, S1_COL_O,
+    S1_COL_I, S1_COL_J, S1_COL_K, S1_COL_L, S1_COL_M, S1_COL_N,
     # Section 2 — Self-Gen: Pipeline $, Bookings $, Opps, Emails, Calls, Voicemail, Foot Canvass, Net New
     S6_COL_AF, S6_COL_AM, S6_COL_AE, S2_COL_O, S2_COL_P, S2_COL_Q, S2_COL_R, S2_COL_S,
     # Section 3 — SDR: Pipeline $, Bookings $, Opps, Emails, Calls, Mtgs Scheduled, Mtgs Held
