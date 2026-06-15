@@ -5,15 +5,9 @@ interface Props {
   title: string;
   description?: string;
   children: ReactNode;
-  /** Side to open on (default top). */
   side?: "top" | "right" | "bottom" | "left";
 }
 
-/**
- * Hover/focus tooltip with a bold title and an optional muted description.
- * One TooltipProvider sits at the app root in App.tsx; this component is
- * the leaf that wraps the trigger.
- */
 export function InfoTooltip({ title, description, children, side = "top" }: Props) {
   return (
     <Tooltip.Root>

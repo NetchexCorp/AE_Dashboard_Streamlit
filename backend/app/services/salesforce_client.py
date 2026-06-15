@@ -1,9 +1,4 @@
-"""Salesforce client-credentials flow + thin SfClient wrapper.
-
-Replaces the Web Server OAuth flow in legacy src/salesforce_oauth.py. The app
-authenticates as a single integration identity; per-user Salesforce login is
-gone. All data access happens through one shared token cached at module level.
-"""
+"""Salesforce client-credentials flow + thin SfClient wrapper."""
 from __future__ import annotations
 
 import logging

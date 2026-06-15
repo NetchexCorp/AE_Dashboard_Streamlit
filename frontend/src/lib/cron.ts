@@ -1,13 +1,3 @@
-/**
- * Friendly schedule builder.
- *
- * Maps a small UI-driven shape to a standard 5-field crontab string
- * (minute hour day-of-month month day-of-week). Round-trips: any cron
- * produced by makeCron() parses back to the same FriendlySchedule via
- * parseCron(). Anything else falls into "custom" so we don't lose
- * fidelity for power users.
- */
-
 export type Frequency =
   | "daily"
   | "weekdays"
@@ -40,11 +30,12 @@ export function makeCron(s: FriendlySchedule): string {
     case "daily":
       return `${m} ${h} * * *`;
     case "weekdays":
-      return `${m} ${h} * * 1-5`;
+      return `${m} ${h} * * mon-fri`;
     case "weekly": {
       const dows = (s.daysOfWeek.length ? s.daysOfWeek : [1])
         .slice()
         .sort()
+        .map((d) => DOW_TEXT[clamp(d, 0, 6)])
         .join(",");
       return `${m} ${h} * * ${dows}`;
     }
@@ -77,7 +68,7 @@ export function parseCron(raw: string): FriendlySchedule {
     };
   }
   // Weekdays (Mon-Fri)
-  if (dom === "*" && (dow === "1-5" || dow === "MON-FRI")) {
+  if (dom === "*" && /^(1-5|mon-fri|MON-FRI)$/i.test(dow)) {
     return {
       frequency: "weekdays",
       hour,
@@ -87,13 +78,18 @@ export function parseCron(raw: string): FriendlySchedule {
       raw,
     };
   }
-  // Weekly (specific days)
-  if (dom === "*" && /^[0-6](,[0-6])*$/.test(dow)) {
+  // Weekly (specific days) — accept numeric (legacy) or text day names
+  const dowTextRe = /^(sun|mon|tue|wed|thu|fri|sat)(,(sun|mon|tue|wed|thu|fri|sat))*$/i;
+  if (dom === "*" && (dowTextRe.test(dow) || /^[0-6](,[0-6])*$/.test(dow))) {
+    const daysOfWeek = dow.split(",").map((d) => {
+      const idx = DOW_TEXT.indexOf(d.toLowerCase() as typeof DOW_TEXT[number]);
+      return idx !== -1 ? idx : parseInt(d, 10);
+    });
     return {
       frequency: "weekly",
       hour,
       minute,
-      daysOfWeek: dow.split(",").map((d) => parseInt(d, 10)),
+      daysOfWeek,
       dayOfMonth: 1,
       raw,
     };
@@ -115,13 +111,6 @@ export function parseCron(raw: string): FriendlySchedule {
   return fallback;
 }
 
-/**
- * Human-readable summary of the schedule, e.g.
- *   "Daily at 9:00 AM (America/Chicago)"
- *   "Weekdays at 8:30 AM (America/Chicago)"
- *   "Mondays, Wednesdays at 5:00 PM (America/Chicago)"
- *   "Monthly on the 1st at 9:00 AM (America/Chicago)"
- */
 export function describeSchedule(s: FriendlySchedule, tz: string): string {
   if (s.frequency === "custom") return `Custom (${s.raw}) — ${tz}`;
   const time = formatTime(s.hour, s.minute);
@@ -141,6 +130,10 @@ export function describeSchedule(s: FriendlySchedule, tz: string): string {
 }
 
 export const DOW_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+// APScheduler's CronTrigger interprets numeric day_of_week with 0=Monday (not standard
+// cron's 0=Sunday). Using text names avoids the ambiguity — APScheduler handles them correctly.
+const DOW_TEXT = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
 
 function dowName(n: number): string {
   const names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];

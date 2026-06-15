@@ -281,11 +281,6 @@ function headerLabel<TRow>(fallback: string, col: { columnDef: ColumnDef<TRow, u
   return fallback;
 }
 
-/**
- * Convert a TanStack cell to a CSV-safe primitive. We prefer the accessor
- * value (numbers stay numeric, dates stay strings) over the rendered cell
- * (which would include JSX for buttons/heatmaps).
- */
 function cellExportValue<TRow>(
   cell: Cell<TRow, unknown> | undefined,
   _row: Row<TRow>,
