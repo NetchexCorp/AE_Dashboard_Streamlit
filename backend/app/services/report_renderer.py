@@ -36,6 +36,51 @@ def _number(v) -> str:
     return f"{int(v):,}"
 
 
+def _aggregate(rows: list[dict]) -> dict:
+    """Sum the summable currency columns across a set of All-Source rows.
+
+    Mirrors the dashboard's Grand Total / Manager subtotal rollups (every
+    column here is currency, so a plain null-safe sum is correct)."""
+    n_sources = len(rows[0]["sources"]) if rows else 0
+
+    def col(key: str) -> float:
+        return sum((r.get(key) or 0) for r in rows)
+
+    sources = [
+        {
+            "label": rows[0]["sources"][i]["label"] if rows else "",
+            "bookings": sum((r["sources"][i].get("bookings") or 0) for r in rows),
+            "pipeline": sum((r["sources"][i].get("pipeline") or 0) for r in rows),
+        }
+        for i in range(n_sources)
+    ]
+    return {
+        "total_bookings": col("total_bookings"),
+        "open_pipeline": col("open_pipeline"),
+        "open_pipeline_needed": col("open_pipeline_needed"),
+        "total_pipeline": col("total_pipeline"),
+        "sources": sources,
+    }
+
+
+def _manager_groups(rows: list[dict]) -> list[dict]:
+    """Group rows by manager → [{manager, count, subtotal, rows}], sorted by
+    manager then AE name, matching the dashboard's grouped layout."""
+    groups: dict[str, list[dict]] = {}
+    for r in rows:
+        key = r.get("ae_manager") or "(none)"
+        groups.setdefault(key, []).append(r)
+    return [
+        {
+            "manager": mgr,
+            "count": len(grp),
+            "subtotal": _aggregate(grp),
+            "rows": sorted(grp, key=lambda x: (x.get("ae_name") or "").lower()),
+        }
+        for mgr, grp in sorted(groups.items(), key=lambda kv: kv[0].lower())
+    ]
+
+
 def _make_env() -> Environment:
     env = Environment(
         loader=FileSystemLoader(str(_TEMPLATES_DIR)),
@@ -57,13 +102,15 @@ def render_all_source_summary(
     fetched = datetime.fromtimestamp(response.fetched_at, tz=timezone.utc).strftime(
         "%Y-%m-%d %H:%M UTC"
     )
+    rows = [row.model_dump() for row in response.all_source_summary]
     return template.render(
         subject=subject,
         period_start=response.period_start.isoformat(),
         period_end=response.period_end.isoformat(),
         fetched_at=fetched,
         sources=[{"label": s[0]} for s in ALL_SOURCE_SUMMARY],
-        ass_rows=[row.model_dump() for row in response.all_source_summary],
+        grand_total=_aggregate(rows) if rows else None,
+        groups=_manager_groups(rows),
         kpis=[k.model_dump() for k in [*response.kpi_row_1, *response.kpi_row_2]],
         dashboard_url=DASHBOARD_URL,
     )
