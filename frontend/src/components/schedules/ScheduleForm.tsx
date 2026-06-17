@@ -235,7 +235,6 @@ export function ScheduleForm({ initial, onClose }: Props) {
           </div>
         )}
 
-        {/* Summary + the actual cron, in case anyone wants to see */}
         <div className="rounded-md border border-border bg-background px-3 py-2 text-xs">
           <div className="font-medium text-foreground">{summary}</div>
           <div className="mt-0.5 font-mono text-[11px] text-muted-foreground">

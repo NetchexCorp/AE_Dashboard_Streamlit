@@ -97,9 +97,7 @@ def _sdr_split_owner_clause(p: dict) -> str:
     AND the Opportunity was created by the AE's SDR. Needs sdr_user_id resolved
     upstream (data_engine.resolve_sdr_user_id) because Salesforce disallows a
     dot-walked LHS like 'Opportunity.CreatedById' inside an IN (SELECT …) semi-join."""
-    
     ae_id = p.get("ae_user_id") or "000000000000000"
-    #return f"SplitOwnerId = '{ae_id}' AND Opportunity.CreatedById = '{sdr_id}'"
     return (
         f"SplitOwnerId IN (SELECT Assigned_SDR_Outbound__c FROM User WHERE Id = '{ae_id}'"
         f" AND Assigned_SDR_Outbound__c != null)"

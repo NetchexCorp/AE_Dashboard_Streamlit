@@ -4,8 +4,6 @@ import {
   type ColumnFiltersState,
   type ColumnOrderState,
   type ExpandedState,
-  type Header,
-  type Row,
   type RowData,
   type SortingState,
   flexRender,
@@ -251,7 +249,7 @@ export function DataTable<TRow>({
       for (let i = 0; i < leaves.length; i++) {
         const col = leaves[i];
         const cell = row.getAllCells().find((cl) => cl.column.id === col.id);
-        out[headers[i]] = cellExportValue(cell, row);
+        out[headers[i]] = cellExportValue(cell);
       }
       return out;
     });
@@ -708,10 +706,7 @@ function headerLabel<TRow>(fallback: string, col: { columnDef: ColumnDef<TRow, u
   return fallback;
 }
 
-function cellExportValue<TRow>(
-  cell: Cell<TRow, unknown> | undefined,
-  _row: Row<TRow>,
-): unknown {
+function cellExportValue<TRow>(cell: Cell<TRow, unknown> | undefined): unknown {
   if (!cell) return "";
   const v = cell.getValue();
   if (v === null || v === undefined) return "";
@@ -720,6 +715,3 @@ function cellExportValue<TRow>(
   }
   return String(v);
 }
-
-// Re-export Header type symbol so consumers can type column ids if needed.
-export type { Header };
