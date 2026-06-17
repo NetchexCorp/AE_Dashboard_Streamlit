@@ -28,7 +28,7 @@ import {
   Rows3,
   Search,
 } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTableStore } from "@/stores/tableStore";
 import type { FormatHint } from "@/types/dashboard";
 import { downloadCsv } from "@/lib/csv";
@@ -119,11 +119,6 @@ export function DataTable<TRow>({
   // Persisted per-table view prefs (column order / sort / grouping toggle).
   const prefs = useTableStore((s) => (tableId ? s.prefs[tableId] : undefined));
   const setPrefs = useTableStore((s) => s.setPrefs);
-  const resetLayoutPref = useTableStore((s) => s.resetLayout);
-
-  const persist = (patch: { columnOrder?: string[]; sorting?: SortingState; grouped?: boolean }) => {
-    if (tableId) setPrefs(tableId, patch);
-  };
 
   const [sorting, setSorting] = useState<SortingState>(() => prefs?.sorting ?? []);
   const [columnOrder, setColumnOrder] = useState<ColumnOrderState>(
@@ -137,7 +132,10 @@ export function DataTable<TRow>({
     () => prefs?.grouped ?? true,
   );
   const grouped = canGroup && groupedToggle;
-  const grouping = grouped && groupBy ? [groupBy] : [];
+  const grouping = useMemo(
+    () => (grouped && groupBy ? [groupBy] : []),
+    [grouped, groupBy],
+  );
   const [expanded, setExpanded] = useState<ExpandedState>(
     canGroup && defaultExpandedAll ? true : {},
   );
@@ -146,40 +144,29 @@ export function DataTable<TRow>({
   // pagination is turned off while grouped (manager + AE counts stay small).
   const paginationEnabled = pageSizes.length > 0 && !grouped;
 
-  const handleSortingChange = (updater: SortingState | ((old: SortingState) => SortingState)) => {
-    setSorting((old) => {
-      const next = typeof updater === "function" ? updater(old) : updater;
-      persist({ sorting: next });
-      return next;
-    });
-  };
+  // Persist view prefs AFTER render. This must NOT happen inside a state
+  // updater — writing to the store mid-render updates a subscribed component
+  // while another is rendering, which sends React into an update loop.
+  const firstSync = useRef(true);
+  useEffect(() => {
+    if (!tableId) return;
+    if (firstSync.current) {
+      firstSync.current = false;
+      return; // skip the initial hydrated values
+    }
+    setPrefs(tableId, { sorting, columnOrder, grouped: groupedToggle });
+  }, [tableId, setPrefs, sorting, columnOrder, groupedToggle]);
 
-  const handleColumnOrderChange = (
-    updater: ColumnOrderState | ((old: ColumnOrderState) => ColumnOrderState),
-  ) => {
-    setColumnOrder((old) => {
-      const next = typeof updater === "function" ? updater(old) : updater;
-      persist({ columnOrder: next });
-      return next;
-    });
-  };
-
-  const toggleGrouping = () => {
-    setGroupedToggle((g) => {
-      const next = !g;
-      persist({ grouped: next });
-      return next;
-    });
-  };
+  const toggleGrouping = () => setGroupedToggle((g) => !g);
 
   const table = useReactTable<TRow>({
     data,
     columns,
     state: { globalFilter, sorting, columnFilters, grouping, expanded, columnOrder },
     onGlobalFilterChange: setGlobalFilter,
-    onSortingChange: handleSortingChange,
+    onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
-    onColumnOrderChange: handleColumnOrderChange,
+    onColumnOrderChange: setColumnOrder,
     onExpandedChange: setExpanded,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -212,14 +199,13 @@ export function DataTable<TRow>({
     if (from < 0 || to < 0) return;
     next.splice(from, 1);
     next.splice(to, 0, fromId);
-    handleColumnOrderChange(next);
+    setColumnOrder(next);
   };
 
   const layoutCustomized = columnOrder.length > 0 || sorting.length > 0;
   const handleResetLayout = () => {
     setColumnOrder([]);
     setSorting([]);
-    if (tableId) resetLayoutPref(tableId);
   };
 
   const leafColumns = table.getVisibleLeafColumns();

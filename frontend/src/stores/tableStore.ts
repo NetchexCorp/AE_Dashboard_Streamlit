@@ -18,8 +18,6 @@ export interface TablePrefs {
 interface TableStore {
   prefs: Record<string, TablePrefs>;
   setPrefs: (id: string, patch: Partial<TablePrefs>) => void;
-  /** Clear column order + sorting for a table (keeps the grouping toggle). */
-  resetLayout: (id: string) => void;
 }
 
 export const useTableStore = create<TableStore>()(
@@ -29,13 +27,6 @@ export const useTableStore = create<TableStore>()(
       setPrefs: (id, patch) =>
         set((s) => ({
           prefs: { ...s.prefs, [id]: { ...s.prefs[id], ...patch } },
-        })),
-      resetLayout: (id) =>
-        set((s) => ({
-          prefs: {
-            ...s.prefs,
-            [id]: { ...s.prefs[id], columnOrder: undefined, sorting: undefined },
-          },
         })),
     }),
     { name: "ae-tables" },
