@@ -26,6 +26,8 @@ class AllSourceSummaryRow(BaseModel):
     ae_id: str
     ae_name: str
     ae_manager: str
+    # Quota for the current month — leads the Totals (Period) sequence.
+    quota: float | None = None
     total_pipeline: float | None
     open_pipeline: float | None
     # Open pipeline required to hit this month's quota (floored at 0); drives the

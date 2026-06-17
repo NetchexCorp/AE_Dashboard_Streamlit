@@ -2,6 +2,7 @@ import {
   type ColumnDef,
   createColumnHelper,
 } from "@tanstack/react-table";
+import { ArrowDown } from "lucide-react";
 import { useMemo } from "react";
 import type { AERow, ColumnMeta } from "@/types/dashboard";
 import { DataTable } from "@/components/tables/DataTable";
@@ -84,7 +85,8 @@ export function SectionTable({ section, columns, rows, showHeader = true }: Prop
               return <span className="text-xs italic text-muted-foreground/60">Pending</span>;
             }
             const value = c.getValue() as number | null;
-            // Open Pipeline turns red when it falls short of what's needed to hit quota.
+            // Open Pipeline turns red + shows a down-arrow when it falls short of
+            // what's needed to hit quota (arrow keeps meaning legible without color).
             const needed = c.row.original.values[OPEN_PIPELINE_NEEDED_COL];
             const short =
               col.col_id === OPEN_PIPELINE_COL &&
@@ -93,11 +95,13 @@ export function SectionTable({ section, columns, rows, showHeader = true }: Prop
               value < needed;
             return (
               <span
+                title={short ? "Below the open pipeline needed to hit quota" : undefined}
                 className={cn(
-                  "block w-full px-1.5 py-0.5 text-right tabular-nums",
+                  "flex w-full items-center justify-end gap-1 px-1.5 py-0.5 text-right tabular-nums",
                   short && "font-semibold text-red-600",
                 )}
               >
+                {short && <ArrowDown className="h-3 w-3 shrink-0" aria-hidden="true" />}
                 {fmt(value, col.format)}
               </span>
             );
@@ -126,6 +130,7 @@ export function SectionTable({ section, columns, rows, showHeader = true }: Prop
         stickyFirstColumn
         exportFilename={`section-${section.key.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
         groupBy="manager"
+        tableId={`section-${section.key.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
       />
     </section>
   );

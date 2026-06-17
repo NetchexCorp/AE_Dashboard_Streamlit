@@ -11,7 +11,7 @@ def test_columns_endpoint_returns_full_payload(client: TestClient) -> None:
     assert "sections" in body
     assert "kpi_row_1" in body and len(body["kpi_row_1"]) == 6
     assert "kpi_row_2" in body and len(body["kpi_row_2"]) == 6
-    # Self Gen, SDR, Channel, Marketing, Others
+    # Self Gen, Channel, SDR, Marketing, Others
     assert "all_source_summary" in body and len(body["all_source_summary"]) == 5
     assert body["total_bookings_col"] == "S1-COL-M"
 

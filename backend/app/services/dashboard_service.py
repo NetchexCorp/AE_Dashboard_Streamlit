@@ -27,6 +27,7 @@ from app.services.column_meta import (
     TOTAL_OPEN_PIPELINE_COL,
     TOTAL_OPEN_PIPELINE_NEEDED_COL,
     TOTAL_PIPELINE_COL,
+    TOTAL_QUOTA_COL,
     format_hint,
 )
 from app.services.roster_service import get_roster_service
@@ -84,6 +85,7 @@ def _open_pipeline_needed(row: dict) -> float | None:
 
 
 def _all_source_summary_row(ae_id: str, ae_name: str, ae_manager: str, row: dict) -> AllSourceSummaryRow:
+    quota = _safe_float(row.get(TOTAL_QUOTA_COL))
     total_pipeline = _safe_float(row.get(TOTAL_PIPELINE_COL))
     open_pipeline = _safe_float(row.get(TOTAL_OPEN_PIPELINE_COL))
     open_pipeline_needed = _open_pipeline_needed(row)
@@ -101,6 +103,7 @@ def _all_source_summary_row(ae_id: str, ae_name: str, ae_manager: str, row: dict
         ae_id=ae_id,
         ae_name=ae_name,
         ae_manager=ae_manager,
+        quota=quota,
         total_pipeline=total_pipeline,
         open_pipeline=open_pipeline,
         open_pipeline_needed=open_pipeline_needed,

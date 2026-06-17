@@ -2,8 +2,8 @@ import {
   type Cell,
   type ColumnDef,
   type ColumnFiltersState,
+  type ColumnOrderState,
   type ExpandedState,
-  type GroupingState,
   type Header,
   type Row,
   type RowData,
@@ -24,9 +24,12 @@ import {
   ChevronRight,
   ChevronsUpDown,
   Download,
+  RotateCcw,
+  Rows3,
   Search,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { useTableStore } from "@/stores/tableStore";
 import type { FormatHint } from "@/types/dashboard";
 import { downloadCsv } from "@/lib/csv";
 import { fmt } from "@/lib/formatters";
@@ -68,17 +71,26 @@ interface Props<TRow> {
   /** Base filename for export, without extension. */
   exportFilename?: string;
   /**
-   * Column id to group rows by (e.g. "manager"). When set, renders one
-   * collapsible subtotal row per group plus a pinned Grand Total row, using
-   * each column's `meta.aggregate` rule. Pagination is disabled while grouped.
+   * Column id to group rows by (e.g. "manager"). When set, a "Group by …"
+   * toggle is shown; while on, renders one collapsible subtotal row per group
+   * plus a pinned Grand Total row using each column's `meta.aggregate` rule
+   * (pagination off). While off, the rows are a flat, sortable, paginated list.
    */
   groupBy?: string;
+  /** Label for the grouping toggle (default "Group by manager"). */
+  groupToggleLabel?: string;
   /** Expand all groups on first render (default true). */
   defaultExpandedAll?: boolean;
   /** Label for the Grand Total row (default "Grand Total"). */
   grandTotalLabel?: string;
   /** Render the leaf-count suffix on group rows (default `${n} AEs`). */
   groupCountLabel?: (count: number) => string;
+  /**
+   * Stable id used to persist column order, sort, and the grouping toggle to
+   * the browser. When set, headers become drag-reorderable and a reset control
+   * appears once the layout is customized.
+   */
+  tableId?: string;
 }
 
 const DEFAULT_PAGE_SIZES = [10, 25, 50, 100];
@@ -95,32 +107,79 @@ export function DataTable<TRow>({
   enableExport = true,
   exportFilename = "export",
   groupBy,
+  groupToggleLabel = "Group by manager",
   defaultExpandedAll = true,
   grandTotalLabel = "Grand Total",
   groupCountLabel = (n) => `${n} AE${n === 1 ? "" : "s"}`,
+  tableId,
 }: Props<TRow>) {
   const [globalFilter, setGlobalFilter] = useState("");
-  const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
-  const grouped = Boolean(groupBy);
-  const [grouping, setGrouping] = useState<GroupingState>(groupBy ? [groupBy] : []);
+  // Persisted per-table view prefs (column order / sort / grouping toggle).
+  const prefs = useTableStore((s) => (tableId ? s.prefs[tableId] : undefined));
+  const setPrefs = useTableStore((s) => s.setPrefs);
+  const resetLayoutPref = useTableStore((s) => s.resetLayout);
+
+  const persist = (patch: { columnOrder?: string[]; sorting?: SortingState; grouped?: boolean }) => {
+    if (tableId) setPrefs(tableId, patch);
+  };
+
+  const [sorting, setSorting] = useState<SortingState>(() => prefs?.sorting ?? []);
+  const [columnOrder, setColumnOrder] = useState<ColumnOrderState>(
+    () => prefs?.columnOrder ?? [],
+  );
+
+  const canGroup = Boolean(groupBy);
+  // Manager-grouping toggle: persisted choice, falling back to "on" when the
+  // table supports grouping.
+  const [groupedToggle, setGroupedToggle] = useState<boolean>(
+    () => prefs?.grouped ?? true,
+  );
+  const grouped = canGroup && groupedToggle;
+  const grouping = grouped && groupBy ? [groupBy] : [];
   const [expanded, setExpanded] = useState<ExpandedState>(
-    grouped && defaultExpandedAll ? true : {},
+    canGroup && defaultExpandedAll ? true : {},
   );
 
   // Grouping replaces the per-row paging contract with subtotal/total rows, so
   // pagination is turned off while grouped (manager + AE counts stay small).
   const paginationEnabled = pageSizes.length > 0 && !grouped;
 
+  const handleSortingChange = (updater: SortingState | ((old: SortingState) => SortingState)) => {
+    setSorting((old) => {
+      const next = typeof updater === "function" ? updater(old) : updater;
+      persist({ sorting: next });
+      return next;
+    });
+  };
+
+  const handleColumnOrderChange = (
+    updater: ColumnOrderState | ((old: ColumnOrderState) => ColumnOrderState),
+  ) => {
+    setColumnOrder((old) => {
+      const next = typeof updater === "function" ? updater(old) : updater;
+      persist({ columnOrder: next });
+      return next;
+    });
+  };
+
+  const toggleGrouping = () => {
+    setGroupedToggle((g) => {
+      const next = !g;
+      persist({ grouped: next });
+      return next;
+    });
+  };
+
   const table = useReactTable<TRow>({
     data,
     columns,
-    state: { globalFilter, sorting, columnFilters, grouping, expanded },
+    state: { globalFilter, sorting, columnFilters, grouping, expanded, columnOrder },
     onGlobalFilterChange: setGlobalFilter,
-    onSortingChange: setSorting,
+    onSortingChange: handleSortingChange,
     onColumnFiltersChange: setColumnFilters,
-    onGroupingChange: setGrouping,
+    onColumnOrderChange: handleColumnOrderChange,
     onExpandedChange: setExpanded,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -134,6 +193,34 @@ export function DataTable<TRow>({
       ? { pagination: { pageIndex: 0, pageSize: initialPageSize ?? pageSizes[0] } }
       : undefined,
   });
+
+  // Column drag-reorder (native HTML5 DnD). Reordering operates on the full
+  // leaf-column id list so TanStack keeps every column; only `tableId` tables
+  // opt in. The sticky first column stays put as an anchor.
+  const enableReorder = Boolean(tableId);
+  const dragColId = useRef<string | null>(null);
+
+  const reorderColumn = (fromId: string, toId: string) => {
+    if (fromId === toId) return;
+    const base =
+      columnOrder.length > 0
+        ? columnOrder
+        : table.getAllLeafColumns().map((c) => c.id);
+    const next = base.slice();
+    const from = next.indexOf(fromId);
+    const to = next.indexOf(toId);
+    if (from < 0 || to < 0) return;
+    next.splice(from, 1);
+    next.splice(to, 0, fromId);
+    handleColumnOrderChange(next);
+  };
+
+  const layoutCustomized = columnOrder.length > 0 || sorting.length > 0;
+  const handleResetLayout = () => {
+    setColumnOrder([]);
+    setSorting([]);
+    if (tableId) resetLayoutPref(tableId);
+  };
 
   const leafColumns = table.getVisibleLeafColumns();
   const colCount = leafColumns.length;
@@ -197,6 +284,38 @@ export function DataTable<TRow>({
             </span>
           </>
         )}
+        {canGroup && (
+          <button
+            type="button"
+            onClick={toggleGrouping}
+            aria-pressed={grouped}
+            className={cn(
+              "inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+              grouped
+                ? "border-primary/40 bg-primary/10 text-foreground"
+                : "border-border bg-background text-muted-foreground hover:bg-accent",
+            )}
+            title={
+              grouped
+                ? `Grouped — click to ungroup and sort all AEs flat`
+                : `Click to group rows by manager`
+            }
+          >
+            <Rows3 className="h-3.5 w-3.5" />
+            {groupToggleLabel}
+          </button>
+        )}
+        {enableReorder && layoutCustomized && (
+          <button
+            type="button"
+            onClick={handleResetLayout}
+            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 text-xs text-muted-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            title="Reset column order and sort to defaults"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            Reset layout
+          </button>
+        )}
         {enableExport && totalRows > 0 && (
           <button
             type="button"
@@ -235,20 +354,74 @@ export function DataTable<TRow>({
                   const sortDir = header.column.getIsSorted();
                   const sticky = stickyFirstColumn && idx === 0;
                   const alignRight = header.column.columnDef.meta?.align === "right";
+                  const toggleSort = header.column.getToggleSortingHandler();
+                  // Draggable for reorder, except the sticky anchor column and
+                  // placeholder header cells.
+                  const draggable =
+                    enableReorder && !sticky && !header.isPlaceholder;
                   return (
                     <th
                       key={header.id}
                       colSpan={header.colSpan}
+                      draggable={draggable || undefined}
+                      onDragStart={
+                        draggable
+                          ? () => {
+                              dragColId.current = header.column.id;
+                            }
+                          : undefined
+                      }
+                      onDragOver={
+                        draggable ? (e) => e.preventDefault() : undefined
+                      }
+                      onDrop={
+                        draggable
+                          ? (e) => {
+                              e.preventDefault();
+                              if (dragColId.current) {
+                                reorderColumn(dragColId.current, header.column.id);
+                              }
+                              dragColId.current = null;
+                            }
+                          : undefined
+                      }
+                      onDragEnd={
+                        draggable
+                          ? () => {
+                              dragColId.current = null;
+                            }
+                          : undefined
+                      }
+                      title={draggable ? "Drag to reorder column" : undefined}
+                      aria-sort={
+                        !canSort
+                          ? undefined
+                          : sortDir === "asc"
+                            ? "ascending"
+                            : sortDir === "desc"
+                              ? "descending"
+                              : "none"
+                      }
+                      tabIndex={canSort ? 0 : undefined}
                       className={cn(
                         "border-b border-border px-2 py-2 align-bottom text-xs font-medium text-muted-foreground",
                         hasWidths ? "whitespace-normal break-words" : "whitespace-nowrap",
                         alignRight ? "text-right" : "text-left",
                         sticky && "sticky left-0 z-30 bg-muted/70",
-                        canSort && "cursor-pointer select-none",
+                        canSort &&
+                          "cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                       )}
-                      onClick={
+                      onClick={canSort ? toggleSort : undefined}
+                      onKeyDown={
                         canSort
-                          ? header.column.getToggleSortingHandler()
+                          ? (e) => {
+                              // Enter/Space toggle sort so the column is fully
+                              // keyboard-operable (header is focusable above).
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                toggleSort?.(e);
+                              }
+                            }
                           : undefined
                       }
                     >

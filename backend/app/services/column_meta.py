@@ -48,13 +48,15 @@ PERCENT_COLS: set[str] = {"S1-COL-E", "S1-COL-H"}
 LOWER_IS_BETTER: set[str] = {"S1-COL-N"}
 
 # All Source Summary: (display label, pipeline col, bookings col)
+# Canonical source order: Self-Gen, Channel, SDR, Marketing, Others.
 ALL_SOURCE_SUMMARY: list[tuple[str, str, str]] = [
     ("Self Gen", "S6-COL-AF", "S6-COL-AM"),
-    ("SDR", "S6-COL-AH", "S6-COL-AN"),
     ("Channel", "S6-COL-AJ", "S6-COL-AO"),
+    ("SDR", "S6-COL-AH", "S6-COL-AN"),
     ("Marketing", "S6-COL-AL", "S6-COL-AP"),
     ("Others", "S6-COL-AQ", "S6-COL-AR"),
 ]
+TOTAL_QUOTA_COL = "S1-COL-F"         # Quota for the current month (MTD)
 TOTAL_PIPELINE_COL = "S1-COL-L"      # Pipeline generated in time period
 TOTAL_OPEN_PIPELINE_COL = "S1-COL-I"  # Open Pipeline with Current Month Close
 TOTAL_OPEN_PIPELINE_NEEDED_COL = "S1-COL-O"  # Open Pipeline Needed to Quota

@@ -1,11 +1,15 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { X } from "lucide-react";
+import { ArrowDown, X } from "lucide-react";
 import { useFilters } from "@/hooks/useFilters";
 import { useAeDetail, useColumnMeta } from "@/hooks/useDashboard";
 import { fmt } from "@/lib/formatters";
 import { cn } from "@/lib/cn";
 import { OPEN_PIPELINE_COL, OPEN_PIPELINE_NEEDED_COL } from "@/lib/columns";
-import { orderedSectionColumns } from "@/lib/sections";
+import {
+  orderedSectionColumns,
+  sectionOrderIndex,
+  sourceOrderIndex,
+} from "@/lib/sections";
 
 export function AEDrillDownDrawer() {
   const { filters, set } = useFilters();
@@ -34,7 +38,7 @@ export function AEDrillDownDrawer() {
                   {detail.data ? (
                     <>
                       <div>
-                        Manager: {detail.data.ae_manager || "—"} • {detail.data.ae_email}
+                        AE Manager: {detail.data.ae_manager || "—"} • {detail.data.ae_email}
                       </div>
                       <div>SDR: {detail.data.sdr_name || "—"}</div>
                     </>
@@ -68,56 +72,56 @@ export function AEDrillDownDrawer() {
                   <h3 className="mb-2 text-sm font-medium text-muted-foreground">
                     Source Breakdown
                   </h3>
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm">
-                      <span className="font-medium">Bookings in time period</span>
-                      <span className="tabular-nums">
-                        {fmt(detail.data.all_source_summary.total_bookings, "currency")}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm">
-                      <span className="font-medium">Open Pipeline with Current Month Close</span>
-                      {(() => {
-                        const ass = detail.data.all_source_summary;
-                        const short =
-                          ass.open_pipeline != null &&
-                          ass.open_pipeline_needed != null &&
-                          ass.open_pipeline < ass.open_pipeline_needed;
-                        return (
-                          <span
-                            className={cn(
-                              "tabular-nums",
-                              short && "font-semibold text-red-600",
-                            )}
+                  {(() => {
+                    const ass = detail.data.all_source_summary;
+                    const short =
+                      ass.open_pipeline != null &&
+                      ass.open_pipeline_needed != null &&
+                      ass.open_pipeline < ass.open_pipeline_needed;
+                    // Totals lead-in matches the summary table order:
+                    // Quota → Bookings → Open Pipeline → Needed → Pipeline Gen.
+                    const sortedSources = [...ass.sources].sort(
+                      (a, b) => sourceOrderIndex(a.label) - sourceOrderIndex(b.label),
+                    );
+                    return (
+                      <div className="space-y-1.5">
+                        <TotalRow label="Quota (MTD)" value={ass.quota} />
+                        <TotalRow
+                          label="Bookings in time period"
+                          value={ass.total_bookings}
+                        />
+                        <TotalRow
+                          label="Open Pipeline with Current Month Close"
+                          value={ass.open_pipeline}
+                          short={short}
+                        />
+                        <TotalRow
+                          label="Open Pipeline Needed to Quota with Current Month Close"
+                          value={ass.open_pipeline_needed}
+                        />
+                        <TotalRow
+                          label="Pipeline generated in time period"
+                          value={ass.total_pipeline}
+                        />
+                        {sortedSources.map((s) => (
+                          <div
+                            key={s.label}
+                            className="grid grid-cols-3 items-center rounded-md border border-border px-3 py-2 text-sm"
                           >
-                            {fmt(ass.open_pipeline, "currency")}
-                          </span>
-                        );
-                      })()}
-                    </div>
-                    <div className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm">
-                      <span className="font-medium">Pipeline generated in time period</span>
-                      <span className="tabular-nums">
-                        {fmt(detail.data.all_source_summary.total_pipeline, "currency")}
-                      </span>
-                    </div>
-                    {detail.data.all_source_summary.sources.map((s) => (
-                      <div
-                        key={s.label}
-                        className="grid grid-cols-3 items-center rounded-md border border-border px-3 py-2 text-sm"
-                      >
-                        <span className="font-medium">{s.label}</span>
-                        <span className="text-right tabular-nums">
-                          <span className="text-xs text-muted-foreground">Pipe </span>
-                          {fmt(s.pipeline, "currency")}
-                        </span>
-                        <span className="text-right tabular-nums">
-                          <span className="text-xs text-muted-foreground">Book </span>
-                          {fmt(s.bookings, "currency")}
-                        </span>
+                            <span className="font-medium">{s.label}</span>
+                            <span className="text-right tabular-nums">
+                              <span className="text-xs text-muted-foreground">Bookings </span>
+                              {fmt(s.bookings, "currency")}
+                            </span>
+                            <span className="text-right tabular-nums">
+                              <span className="text-xs text-muted-foreground">Pipeline </span>
+                              {fmt(s.pipeline, "currency")}
+                            </span>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })()}
                 </section>
 
                 {cols.data && (
@@ -126,7 +130,12 @@ export function AEDrillDownDrawer() {
                       Sections
                     </h3>
                     <div className="space-y-3">
-                      {cols.data.sections.map((sec) => {
+                      {[...cols.data.sections]
+                        .sort(
+                          (a, b) =>
+                            sectionOrderIndex(a.key) - sectionOrderIndex(b.key),
+                        )
+                        .map((sec) => {
                         const secCols = orderedSectionColumns(
                           cols.data!.columns,
                           sec.key,
@@ -184,5 +193,36 @@ export function AEDrillDownDrawer() {
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
+  );
+}
+
+/**
+ * One row in the drawer's Source Breakdown totals. When `short`, the value
+ * turns red and shows a down-arrow + tooltip (color-not-only), matching the
+ * shortfall cue used in the dashboard tables.
+ */
+function TotalRow({
+  label,
+  value,
+  short = false,
+}: {
+  label: string;
+  value: number | null;
+  short?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm">
+      <span className="font-medium">{label}</span>
+      <span
+        title={short ? "Below the open pipeline needed to hit quota" : undefined}
+        className={cn(
+          "flex items-center gap-1 tabular-nums",
+          short && "font-semibold text-red-600",
+        )}
+      >
+        {short && <ArrowDown className="h-3 w-3 shrink-0" aria-hidden="true" />}
+        {fmt(value, "currency")}
+      </span>
+    </div>
   );
 }

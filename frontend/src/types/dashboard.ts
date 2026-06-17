@@ -66,6 +66,7 @@ export interface AllSourceSummaryRow {
   ae_id: string;
   ae_name: string;
   ae_manager: string;
+  quota: number | null;
   total_pipeline: number | null;
   open_pipeline: number | null;
   open_pipeline_needed: number | null;

@@ -16,13 +16,38 @@ export interface SectionDef {
   pipelineCol: string;
 }
 
+// Canonical order: Pipeline & Quota (headline) then sources in the order
+// Self-Gen → Channel → SDR → Marketing.
 export const SECTION_DEFS: SectionDef[] = [
   { slug: "pipeline-quota", key: "Pipeline & Quota", label: "Pipeline & Quota", bookingsCol: "S1-COL-M", pipelineCol: "S1-COL-L" },
   { slug: "self-gen", key: "Self-Gen Pipeline Creation", label: "Self-Gen Pipeline", bookingsCol: "S6-COL-AM", pipelineCol: "S6-COL-AF" },
-  { slug: "sdr", key: "SDR Activity", label: "SDR Activity", bookingsCol: "S6-COL-AN", pipelineCol: "S6-COL-AH" },
   { slug: "channel", key: "Channel Partners", label: "Channel Partners", bookingsCol: "S6-COL-AO", pipelineCol: "S6-COL-AJ" },
+  { slug: "sdr", key: "SDR Activity", label: "SDR Activity", bookingsCol: "S6-COL-AN", pipelineCol: "S6-COL-AH" },
   { slug: "marketing", key: "Marketing", label: "Marketing", bookingsCol: "S6-COL-AP", pipelineCol: "S6-COL-AL" },
 ];
+
+/**
+ * Canonical left-to-right order of the All-Source Summary source columns,
+ * applied on the client so the default order is correct even if the backend
+ * payload arrives in a different order. Unknown labels sort to the end.
+ */
+export const SOURCE_ORDER = ["Self Gen", "Channel", "SDR", "Marketing", "Others"];
+
+export function sourceOrderIndex(label: string): number {
+  const i = SOURCE_ORDER.indexOf(label);
+  return i === -1 ? SOURCE_ORDER.length : i;
+}
+
+const SECTION_KEY_ORDER = SECTION_DEFS.map((s) => s.key);
+
+/**
+ * Canonical position of a section by its backend key, matching the sidebar /
+ * section-page order. Keys absent from SECTION_DEFS (e.g. "Others") sort last.
+ */
+export function sectionOrderIndex(key: string): number {
+  const i = SECTION_KEY_ORDER.indexOf(key);
+  return i === -1 ? SECTION_KEY_ORDER.length : i;
+}
 
 export function sectionBySlug(slug: string): SectionDef | undefined {
   return SECTION_DEFS.find((s) => s.slug === slug);
