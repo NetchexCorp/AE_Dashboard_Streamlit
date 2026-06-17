@@ -15,8 +15,11 @@
       table { border-collapse: collapse; width: 100%; font-size: 12px; }
       th, td { padding: 6px 8px; text-align: right; }
       th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: left; }
-      thead th { background: #f3f4f6; color: #4b5563; font-weight: 500; border-bottom: 1px solid #e5e7eb; }
+      thead th { background: #f3f4f6; color: #4b5563; font-weight: 500; border-bottom: 1px solid #e5e7eb; vertical-align: bottom; }
       tbody tr { border-bottom: 1px solid #f3f4f6; }
+      tr.grand td { background: #eef2ff; font-weight: 700; border-top: 2px solid #c7d2fe; border-bottom: 1px solid #c7d2fe; }
+      tr.subtotal td { background: #f9fafb; font-weight: 600; }
+      td.short { color: #dc2626; font-weight: 600; }
       .footer { color: #9ca3af; font-size: 11px; margin-top: 24px; }
     </style>
   </head>
@@ -28,6 +31,7 @@
     </p>
 
     <h2>All Source Summary</h2>
+    <p class="meta">Grand Total and per-Manager subtotals, then each manager's AEs.</p>
     <table>
       <thead>
         <tr>
@@ -35,6 +39,7 @@
           <th>Manager</th>
           <th>Bookings in time period</th>
           <th>Open Pipeline with Current Month Close</th>
+          <th>Open Pipeline Needed to Quota with Current Month Close</th>
           <th>Pipeline generated in time period</th>
           {% for s in sources %}
             <th>{{ s.label }} Bookings</th>
@@ -42,23 +47,49 @@
           {% endfor %}
         </tr>
       </thead>
+      {# Reusable cells for an aggregate (Grand Total / subtotal) row. #}
+      {% macro total_cells(t) %}
+        <td>{{ t.total_bookings | money }}</td>
+        <td>{{ t.open_pipeline | money }}</td>
+        <td>{{ t.open_pipeline_needed | money }}</td>
+        <td>{{ t.total_pipeline | money }}</td>
+        {% for cell in t.sources %}
+          <td>{{ cell.bookings | money }}</td>
+          <td>{{ cell.pipeline | money }}</td>
+        {% endfor %}
+      {% endmacro %}
       <tbody>
-        {% for row in ass_rows %}
-          <tr>
-            <td>{{ row.ae_name }}</td>
-            <td>{{ row.ae_manager }}</td>
-            <td>{{ row.total_bookings | money }}</td>
-            {% if row.open_pipeline is not none and row.open_pipeline_needed is not none and row.open_pipeline < row.open_pipeline_needed %}
-              <td style="color: #dc2626; font-weight: 600;">{{ row.open_pipeline | money }}</td>
-            {% else %}
-              <td>{{ row.open_pipeline | money }}</td>
-            {% endif %}
-            <td>{{ row.total_pipeline | money }}</td>
-            {% for cell in row.sources %}
-              <td>{{ cell.bookings | money }}</td>
-              <td>{{ cell.pipeline | money }}</td>
-            {% endfor %}
+        {% if grand_total %}
+          <tr class="grand">
+            <td>Grand Total</td>
+            <td></td>
+            {{ total_cells(grand_total) }}
           </tr>
+        {% endif %}
+        {% for g in groups %}
+          <tr class="subtotal">
+            <td>{{ g.manager }} — {{ g.count }} AE{{ '' if g.count == 1 else 's' }}</td>
+            <td></td>
+            {{ total_cells(g.subtotal) }}
+          </tr>
+          {% for row in g.rows %}
+            <tr>
+              <td>{{ row.ae_name }}</td>
+              <td>{{ row.ae_manager }}</td>
+              <td>{{ row.total_bookings | money }}</td>
+              {% if row.open_pipeline is not none and row.open_pipeline_needed is not none and row.open_pipeline < row.open_pipeline_needed %}
+                <td class="short">{{ row.open_pipeline | money }}</td>
+              {% else %}
+                <td>{{ row.open_pipeline | money }}</td>
+              {% endif %}
+              <td>{{ row.open_pipeline_needed | money }}</td>
+              <td>{{ row.total_pipeline | money }}</td>
+              {% for cell in row.sources %}
+                <td>{{ cell.bookings | money }}</td>
+                <td>{{ cell.pipeline | money }}</td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
         {% endfor %}
       </tbody>
     </table>

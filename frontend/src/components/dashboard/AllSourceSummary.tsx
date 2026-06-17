@@ -9,6 +9,7 @@ import type {
   ColumnMeta,
 } from "@/types/dashboard";
 import { useFilters } from "@/hooks/useFilters";
+import { COL_W } from "@/lib/columns";
 import { fmt } from "@/lib/formatters";
 import { DataTable } from "@/components/tables/DataTable";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
@@ -75,6 +76,8 @@ export function AllSourceSummary({ rows, sources, columnMeta = [] }: Props) {
               ),
             cell: (c) => <PlainNumber value={c.getValue() as number | null} />,
             sortingFn: numericSort,
+            aggregationFn: "sum",
+            meta: { aggregate: "sum", format: "currency", align: "right", width: COL_W.num },
           }),
           helper.accessor((r) => r.sources[i]?.pipeline ?? null, {
             id: `${s.label}-p`,
@@ -86,6 +89,8 @@ export function AllSourceSummary({ rows, sources, columnMeta = [] }: Props) {
               ),
             cell: (c) => <PlainNumber value={c.getValue() as number | null} />,
             sortingFn: numericSort,
+            aggregationFn: "sum",
+            meta: { aggregate: "sum", format: "currency", align: "right", width: COL_W.num },
           }),
         ],
       }),
@@ -100,24 +105,30 @@ export function AllSourceSummary({ rows, sources, columnMeta = [] }: Props) {
             type="button"
             onClick={() => set({ aeDrillId: c.row.original.ae_id })}
             className={cn(
-              "text-left font-medium",
+              "block w-full truncate text-left font-medium",
               c.row.original.ae_id
                 ? "hover:underline"
                 : "text-muted-foreground",
             )}
             disabled={!c.row.original.ae_id}
-            title={c.row.original.ae_id ? "Open AE drill-down" : "No AE id"}
+            title={c.getValue() as string}
           >
             {c.getValue() as string}
           </button>
         ),
         enableColumnFilter: true,
+        meta: { aggregate: "none", width: COL_W.ae },
       }),
       helper.accessor("ae_manager", {
         id: "manager",
         header: "Manager",
-        cell: (c) => <span className="text-muted-foreground">{c.getValue() as string}</span>,
+        cell: (c) => (
+          <span className="block truncate text-muted-foreground" title={c.getValue() as string}>
+            {c.getValue() as string}
+          </span>
+        ),
         enableColumnFilter: true,
+        meta: { aggregate: "none", width: COL_W.manager },
       }),
       helper.group({
         id: "totals",
@@ -133,6 +144,8 @@ export function AllSourceSummary({ rows, sources, columnMeta = [] }: Props) {
               ),
             cell: (c) => <PlainNumber value={c.getValue() as number | null} />,
             sortingFn: numericSort,
+            aggregationFn: "sum",
+            meta: { aggregate: "sum", format: "currency", align: "right", width: COL_W.num },
           }),
           helper.accessor("open_pipeline", {
             id: "open_pipeline",
@@ -159,6 +172,21 @@ export function AllSourceSummary({ rows, sources, columnMeta = [] }: Props) {
               );
             },
             sortingFn: numericSort,
+            aggregationFn: "sum",
+            meta: { aggregate: "sum", format: "currency", align: "right", width: COL_W.num },
+          }),
+          helper.accessor("open_pipeline_needed", {
+            id: "open_pipeline_needed",
+            header: () =>
+              withTooltip(
+                metaById.get("S1-COL-O"),
+                "Open Pipeline Needed to Quota with Current Month Close",
+                "Open Pipeline Needed to Quota with Current Month Close",
+              ),
+            cell: (c) => <PlainNumber value={c.getValue() as number | null} />,
+            sortingFn: numericSort,
+            aggregationFn: "sum",
+            meta: { aggregate: "sum", format: "currency", align: "right", width: COL_W.num },
           }),
           helper.accessor("total_pipeline", {
             id: "total_pipeline",
@@ -170,6 +198,8 @@ export function AllSourceSummary({ rows, sources, columnMeta = [] }: Props) {
               ),
             cell: (c) => <PlainNumber value={c.getValue() as number | null} />,
             sortingFn: numericSort,
+            aggregationFn: "sum",
+            meta: { aggregate: "sum", format: "currency", align: "right", width: COL_W.num },
           }),
         ],
       }),
@@ -182,7 +212,8 @@ export function AllSourceSummary({ rows, sources, columnMeta = [] }: Props) {
       <header className="mb-2 flex items-center justify-between">
         <h2 className="text-base font-semibold">All Source Summary</h2>
         <p className="text-xs text-muted-foreground">
-          Totals first, then split-credited Pipeline $ and Bookings $ by source.
+          Grand Total and per-Manager subtotals; expand a manager to see their
+          AEs. Totals first, then split-credited Pipeline $ and Bookings $ by source.
         </p>
       </header>
       <DataTable
@@ -191,10 +222,9 @@ export function AllSourceSummary({ rows, sources, columnMeta = [] }: Props) {
         emptyMessage="No AEs match the current filters."
         enableGlobalSearch
         enableColumnFilters={false}
-        pageSizes={[10, 25, 50, 100]}
-        initialPageSize={25}
         stickyFirstColumn
         exportFilename="all-source-summary"
+        groupBy="manager"
       />
     </section>
   );

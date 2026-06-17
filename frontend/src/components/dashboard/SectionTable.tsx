@@ -7,7 +7,7 @@ import type { AERow, ColumnMeta } from "@/types/dashboard";
 import { DataTable } from "@/components/tables/DataTable";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { useFilters } from "@/hooks/useFilters";
-import { OPEN_PIPELINE_COL, OPEN_PIPELINE_NEEDED_COL } from "@/lib/columns";
+import { COL_W, OPEN_PIPELINE_COL, OPEN_PIPELINE_NEEDED_COL } from "@/lib/columns";
 import { fmt } from "@/lib/formatters";
 import { cn } from "@/lib/cn";
 
@@ -36,28 +36,39 @@ export function SectionTable({ section, columns, rows, showHeader = true }: Prop
             type="button"
             onClick={() => set({ aeDrillId: c.row.original.ae_id })}
             className={cn(
-              "text-left font-medium",
+              "block w-full truncate text-left font-medium",
               c.row.original.ae_id
                 ? "hover:underline"
                 : "text-muted-foreground",
             )}
             disabled={!c.row.original.ae_id}
+            title={c.getValue() as string}
           >
             {c.getValue() as string}
           </button>
         ),
+        meta: { aggregate: "none", width: COL_W.ae },
       }),
       helper.accessor("ae_manager", {
         id: "manager",
         header: "AE Manager",
-        cell: (c) => <span className="text-muted-foreground">{c.getValue() as string}</span>,
+        cell: (c) => (
+          <span className="block truncate text-muted-foreground" title={c.getValue() as string}>
+            {c.getValue() as string}
+          </span>
+        ),
+        meta: { aggregate: "none", width: COL_W.manager },
       }),
     ];
 
     for (const col of numericCols) {
+      // Currency and counts roll up by sum; percentages must not be summed.
+      const aggregate = col.format === "percent" ? "none" : "sum";
       defs.push(
         helper.accessor((r) => r.values[col.col_id] ?? null, {
           id: col.col_id,
+          aggregationFn: aggregate === "sum" ? "sum" : undefined,
+          meta: { aggregate, format: col.format, align: "right", width: COL_W.num },
           header: () => (
             <InfoTooltip
               title={col.display_name}
@@ -112,10 +123,9 @@ export function SectionTable({ section, columns, rows, showHeader = true }: Prop
         emptyMessage="No data."
         enableGlobalSearch
         enableColumnFilters={false}
-        pageSizes={[10, 25, 50, 100]}
-        initialPageSize={25}
         stickyFirstColumn
         exportFilename={`section-${section.key.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
+        groupBy="manager"
       />
     </section>
   );
