@@ -94,6 +94,7 @@ interface Props<TRow> {
 }
 
 const DEFAULT_PAGE_SIZES = [10, 25, 50, 100];
+const DEFAULT_PAGE_SIZE = 50;
 
 export function DataTable<TRow>({
   data,
@@ -177,7 +178,14 @@ export function DataTable<TRow>({
     groupedColumnMode: false,
     autoResetExpanded: false,
     initialState: paginationEnabled
-      ? { pagination: { pageIndex: 0, pageSize: initialPageSize ?? pageSizes[0] } }
+      ? {
+          pagination: {
+            pageIndex: 0,
+            pageSize:
+              initialPageSize ??
+              (pageSizes.includes(DEFAULT_PAGE_SIZE) ? DEFAULT_PAGE_SIZE : pageSizes[0]),
+          },
+        }
       : undefined,
   });
 
