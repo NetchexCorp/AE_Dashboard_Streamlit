@@ -430,7 +430,13 @@ WHERE {opp_motion_clause} AND {opp_closed_clause} AND {opp_close_date_clause}
         description="Sales efficiency and deal count by opportunity source category, with win-rate and cycle context.",
         formula="Efficiency per channel (Opportunity_Source_Category__c)",
         fields_required=["opp.amount", "opp.stage", "opp.close_date", "opp.source_category", "opp.created_date"],
-        template="", time_filter=True,
+        template="""
+SELECT Id, Amount, StageName, CloseDate, CreatedDate, OwnerId, Owner.Name,
+       Opportunity_Source_Category__c, Account.Industry
+FROM Opportunity
+WHERE {motion_clause} AND {closed_clause} AND {close_date_clause}
+  AND {territory_clause} AND {seller_clause}
+""", time_filter=True,
     ),
     _e(
         analysis_id="C5-ICP-ALIGN",
@@ -439,7 +445,7 @@ WHERE {opp_motion_clause} AND {opp_closed_clause} AND {opp_close_date_clause}
         description="Deal-volume rank vs win-rate rank per industry; rank gap ≥5 flags over/under-investment.",
         formula="rank(volume) − rank(win rate) per industry",
         fields_required=["opp.stage", "acct.industry"],
-        template="", time_filter=True,
+        template="", time_filter=True, computed=True,
     ),
     _e(
         analysis_id="C5-LEAD-ASSIGN",
@@ -448,7 +454,7 @@ WHERE {opp_motion_clause} AND {opp_closed_clause} AND {opp_close_date_clause}
         description="Win rate and deal count per seller × industry; flags routing mismatches.",
         formula="WinRate per seller × industry cell",
         fields_required=["opp.stage", "acct.industry", "opp.owner"],
-        template="", time_filter=True,
+        template="", time_filter=True, computed=True,
     ),
     _e(
         analysis_id="C5-FUNNEL",
@@ -457,7 +463,13 @@ WHERE {opp_motion_clause} AND {opp_closed_clause} AND {opp_close_date_clause}
         description="Stage-to-stage conversion %, slip %, and average stage duration for converted deals (Discovery → Business Validation → Commitment & Negotiation → Closed/Won).",
         formula="stage transitions from OpportunityHistory",
         fields_required=["opp.stage_history", "opp.stage"],
-        template="", time_filter=True,
+        template="""
+SELECT OpportunityId, StageName, CreatedDate,
+       Opportunity.StageName, Opportunity.Account.Account_Territory__r.Name
+FROM OpportunityHistory
+WHERE {opp_motion_clause} AND {opp_closed_clause} AND {opp_close_date_clause}
+  AND {opp_territory_clause} AND {opp_seller_clause}
+""", time_filter=True,
     ),
     _e(
         analysis_id="C5-FUNNEL-TERR",
@@ -466,7 +478,7 @@ WHERE {opp_motion_clause} AND {opp_closed_clause} AND {opp_close_date_clause}
         description="% convert and % slip per stage per territory.",
         formula="stage transitions × territory",
         fields_required=["opp.stage_history", "acct.territory"],
-        template="", time_filter=True,
+        template="", time_filter=True, computed=True,
     ),
     _e(
         analysis_id="C5-ADHERENCE",
@@ -475,7 +487,7 @@ WHERE {opp_motion_clause} AND {opp_closed_clause} AND {opp_close_date_clause}
         description="% of deals that skip each stage.",
         formula="deals missing a stage in history ÷ closed deals",
         fields_required=["opp.stage_history", "opp.stage"],
-        template="", time_filter=True,
+        template="", time_filter=True, computed=True,
     ),
     _e(
         analysis_id="C5-MEDD-BY-STAGE",
@@ -484,7 +496,13 @@ WHERE {opp_motion_clause} AND {opp_closed_clause} AND {opp_close_date_clause}
         description="Average MEDDPICC score by stage, top vs average territory.",
         formula="avg MEDDPICC per stage",
         fields_required=["opp.meddic_numeric", "opp.stage"],
-        template="", time_filter=False,
+        template="""
+SELECT Id, StageName, AI_MEDDIC_Summary__c
+FROM Opportunity
+WHERE {motion_clause} AND {open_clause}
+  AND {territory_clause} AND {seller_clause}
+  AND AI_Overall_Score__c != null
+""", time_filter=False,
     ),
     _e(
         analysis_id="C5-STAGE-CRITERIA",
@@ -493,7 +511,7 @@ WHERE {opp_motion_clause} AND {opp_closed_clause} AND {opp_close_date_clause}
         description="Entry/exit signal benchmarks per stage derived from won-deal history (duration, activity, threading).",
         formula="won-deal per-stage benchmarks",
         fields_required=["opp.stage_history", "opp.stage", "ocr.contact"],
-        template="", time_filter=True,
+        template="", time_filter=True, computed=True,
     ),
 ]
 

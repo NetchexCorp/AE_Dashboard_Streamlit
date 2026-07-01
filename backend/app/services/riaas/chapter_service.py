@@ -128,6 +128,7 @@ def _territory_efficiency(rows: list[dict]) -> dict:
     }
 
 
+from app.services.riaas.process_service import TRANSFORMS as C5_TRANSFORMS  # noqa: E402
 from app.services.riaas.winloss_service import TRANSFORMS as C2_TRANSFORMS  # noqa: E402
 
 # fn(rows) or (fn(rows, deps), [dependency analysis ids])
@@ -139,6 +140,7 @@ TRANSFORMS: dict[str, Callable | tuple[Callable, list[str]]] = {
     "C1-RPS-EXP": _rps_trend,
     "C1-TERR-EFF-GAP": _territory_efficiency,
     **C2_TRANSFORMS,
+    **C5_TRANSFORMS,
 }
 
 # Quarterly-trend analyses pin their window to the last TREND_QUARTERS quarters.
