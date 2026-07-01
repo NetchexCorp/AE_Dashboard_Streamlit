@@ -38,17 +38,24 @@ created at app startup by `storage/migrations.ensure_tables()`.
 ## Deployment record (2026-07-02)
 
 - Registry `acrx6by53mpm6lgu`; images `ae-dashboard-api:6733970`,
-  `ae-dashboard-ui:9c0ef24` (pull by **tag** — the apps' registry auth rejects
+  `ae-dashboard-ui:6a45acc` (pull by **tag** — the apps' registry auth rejects
   `@sha256:` digest pulls with ImagePullFailure).
 - **API promoted**: `aedash-api--riaas-live` at 100% (RIaaS code,
   `FEATURE_RIAAS_ALLOWED_EMAILS=pmankar@netchexonline.com`,
   `SCHEDULER_ENABLED=true`, sandbox off). Old `aedash-api--0000029` deactivated.
   Interim `--riaas-next2` (scheduler off) staged/promoted/retired so two
   schedulers never ran simultaneously.
-- **UI staged**: `aedash-ui--riaas-next3` Healthy at 0% traffic (supersedes
-  `riaas-next2`, retired — adds the grouped left-nav restructure);
-  `aedash-ui--0000025` still serves 100%. Promote after browser smoke test:
-  `az containerapp ingress traffic set -n aedash-ui -g doldata-rg --revision-weight aedash-ui--riaas-next3=100`
+- **UI staged**: `aedash-ui--riaas-ux1` Healthy at 0% traffic (supersedes
+  `riaas-next2`/`riaas-next3`, both retired; adds nav grouping + chapter UX);
+  `aedash-ui--0000025` still serves 100%.
+- **Stable staging URL** (register its auth callback in Entra **once**):
+  `https://aedash-ui---staging.bravestone-4e7fe75c.eastus.azurecontainerapps.io`
+  — the `staging` revision **label**. Revisions are immutable, so per-revision
+  FQDNs churn on every deploy; the label URL doesn't. Point it at any future
+  staged revision with:
+  `az containerapp revision label add -n aedash-ui -g doldata-rg --label staging --revision <rev> --no-prompt`
+- **Promote** after browser smoke test:
+  `az containerapp ingress traffic set -n aedash-ui -g doldata-rg --revision-weight aedash-ui--riaas-ux1=100`
 - **Rollback**: shift traffic back
   (`... --revision-weight aedash-ui--0000025=100`); API rollback would need the
   old image revision reactivated (`az containerapp revision activate ... --revision aedash-api--0000029`).
