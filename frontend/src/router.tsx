@@ -76,6 +76,22 @@ const orgPerformanceRoute = createRoute({
   ),
 );
 
+const orgAnalysesConfigRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/org/config/analyses",
+}).lazy(() =>
+  import("@/pages/org-performance/OrgAnalysesConfigRoute.lazy").then(
+    (m) => m.Route,
+  ),
+);
+
+const orgFieldsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/org/config/fields",
+}).lazy(() =>
+  import("@/pages/org-performance/OrgFieldsRoute.lazy").then((m) => m.Route),
+);
+
 const schedulesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/schedules",
@@ -130,6 +146,8 @@ const routeTree = rootRoute.addChildren([
     dashboardSectionRoute,
   ]),
   orgPerformanceRoute,
+  orgAnalysesConfigRoute,
+  orgFieldsRoute,
   schedulesRoute,
   configRoute.addChildren([
     configIndexRoute,

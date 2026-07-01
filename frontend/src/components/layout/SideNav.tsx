@@ -55,9 +55,11 @@ const INDIVIDUAL_NAV: TopEntry[] = [
 ];
 
 // "Organization Performance" group — RIaaS revenue intelligence. Rendered
-// only when /api/me reports features.riaas.
-const ORG_NAV: TopEntry[] = [
-  { to: "/org", label: "Overview", Icon: Building2 },
+// only when /api/me reports features.riaas; config entries are admin-only.
+const ORG_SUBNAV: Entry[] = [
+  { to: "/org", label: "Overview" },
+  { to: "/org/config/analyses", label: "Analysis Config" },
+  { to: "/org/config/fields", label: "Field Dictionary" },
 ];
 
 // "Governance" group — admin / audit. Visually separated below.
@@ -72,6 +74,15 @@ export function SideNav() {
   const toggle = useUiStore((s) => s.toggleSidebar);
   const me = useMe();
   const showOrg = me.data?.features.riaas === true;
+  const isAdmin = me.data?.role === "admin";
+  const orgNav: TopEntry[] = [
+    {
+      to: "/org",
+      label: "Overview",
+      Icon: Building2,
+      subnav: isAdmin ? ORG_SUBNAV : undefined,
+    },
+  ];
 
   return (
     <aside
@@ -99,7 +110,7 @@ export function SideNav() {
           <>
             <div className="my-2 mx-1 border-t border-border/60" />
             <GroupLabel collapsed={collapsed}>Organization Performance</GroupLabel>
-            <NavGroup nav={ORG_NAV} collapsed={collapsed} pathname={location.pathname} />
+            <NavGroup nav={orgNav} collapsed={collapsed} pathname={location.pathname} />
           </>
         )}
         <div className="my-2 mx-1 border-t border-border/60" />
@@ -181,8 +192,11 @@ function TopEntryItem({
 }) {
   const { Icon, to, label, subnav } = entry;
   const isOnRoute = pathname === to || pathname.startsWith(to + "/");
-  // Active sub-item label (used in collapsed tooltip)
-  const activeSub = subnav?.find((s) => pathname.startsWith(s.to));
+  // Active sub-item label (used in collapsed tooltip). Longest match wins so
+  // a parent-path entry (e.g. /org) doesn't shadow deeper siblings.
+  const activeSub = subnav
+    ?.filter((s) => pathname.startsWith(s.to))
+    .sort((a, b) => b.to.length - a.to.length)[0];
   const childActive = !!activeSub;
   const expandSubnav = !collapsed && isOnRoute && subnav && subnav.length > 0;
 
@@ -242,7 +256,7 @@ function TopEntryItem({
         // Left rail aligns with parent icon centerline.
         <ul className="my-0.5 ml-[1.375rem] flex flex-col gap-px border-l border-border/60 pl-2">
           {subnav!.map((sub) => {
-            const subActive = pathname.startsWith(sub.to);
+            const subActive = activeSub?.to === sub.to;
             return (
               <li key={sub.to}>
                 <Link
