@@ -11,6 +11,7 @@ import { DashboardSectionRoute } from "@/pages/DashboardSectionRoute";
 import { DashboardSummaryRoute } from "@/pages/DashboardSummaryRoute";
 import type { FilterSearch } from "@/lib/filterParams";
 import type { ChapterSearch } from "@/pages/org-performance/ChapterRoute";
+import type { OrgReportSearch } from "@/pages/org-performance/OrgReportRoute";
 
 const rootRoute = createRootRoute({
   component: AppShell,
@@ -88,6 +89,17 @@ const orgChapterRoute = createRoute({
   import("@/pages/org-performance/ChapterRoute.lazy").then((m) => m.Route),
 );
 
+const orgReportRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/org/report",
+  validateSearch: (raw: Record<string, unknown>): OrgReportSearch => ({
+    period: typeof raw.period === "string" ? raw.period : undefined,
+    motion: typeof raw.motion === "string" ? raw.motion : undefined,
+  }),
+}).lazy(() =>
+  import("@/pages/org-performance/OrgReportRoute.lazy").then((m) => m.Route),
+);
+
 const orgAnalysesConfigRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/org/config/analyses",
@@ -159,6 +171,7 @@ const routeTree = rootRoute.addChildren([
   ]),
   orgPerformanceRoute,
   orgChapterRoute,
+  orgReportRoute,
   orgAnalysesConfigRoute,
   orgFieldsRoute,
   schedulesRoute,

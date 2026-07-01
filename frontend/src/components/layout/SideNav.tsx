@@ -63,6 +63,7 @@ const ORG_SUBNAV: Entry[] = [
     to: `/org/chapters/${c.slug}`,
     label: c.navLabel,
   })),
+  { to: "/org/report", label: "Revenue Report" },
 ];
 
 const ORG_CONFIG_SUBNAV: Entry[] = [

@@ -1,4 +1,10 @@
 import { api } from "./client";
+import type {
+  Schedule,
+  ScheduleCreateIn,
+  ScheduleUpdateIn,
+  SendNowResult,
+} from "./schedules";
 
 export interface AnalysisEntry {
   analysis_id: string;
@@ -204,6 +210,92 @@ export function fetchChapter(
   return api<ChapterResponse>(
     `/api/riaas/chapters/${encodeURIComponent(slug)}${suffix}`,
   );
+}
+
+// ---- Report schedules ----
+
+export type RiaasReportPeriod =
+  | "this_quarter"
+  | "last_quarter"
+  | "ytd"
+  | "last_4_quarters"
+  | "prior_fy";
+
+export type RiaasReportMotion = "all" | "nb" | "exp";
+
+export interface RiaasScheduleFilters {
+  period?: RiaasReportPeriod;
+  motion?: RiaasReportMotion;
+}
+
+export interface RiaasSchedule extends Omit<Schedule, "filters"> {
+  filters: RiaasScheduleFilters;
+}
+
+export interface RiaasScheduleCreateIn
+  extends Omit<ScheduleCreateIn, "filters"> {
+  filters?: RiaasScheduleFilters;
+}
+
+export interface RiaasScheduleUpdateIn
+  extends Omit<ScheduleUpdateIn, "filters"> {
+  filters?: RiaasScheduleFilters;
+}
+
+export interface RiaasSendOnceBody {
+  recipients: string[];
+  subject?: string;
+  filters?: RiaasScheduleFilters;
+}
+
+export function listRiaasSchedules(): Promise<RiaasSchedule[]> {
+  return api<RiaasSchedule[]>("/api/riaas/schedules");
+}
+
+export function createRiaasSchedule(
+  body: RiaasScheduleCreateIn,
+): Promise<RiaasSchedule> {
+  return api<RiaasSchedule>("/api/riaas/schedules", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function updateRiaasSchedule(
+  id: string,
+  body: RiaasScheduleUpdateIn,
+): Promise<RiaasSchedule> {
+  return api<RiaasSchedule>(
+    `/api/riaas/schedules/${encodeURIComponent(id)}`,
+    {
+      method: "PUT",
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+export function removeRiaasSchedule(id: string): Promise<void> {
+  return api<void>(`/api/riaas/schedules/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+}
+
+export function sendRiaasScheduleNow(id: string): Promise<SendNowResult> {
+  return api<SendNowResult>(
+    `/api/riaas/schedules/${encodeURIComponent(id)}/send-now`,
+    {
+      method: "POST",
+    },
+  );
+}
+
+export function sendRiaasOnce(
+  body: RiaasSendOnceBody,
+): Promise<SendNowResult> {
+  return api<SendNowResult>("/api/riaas/schedules/send-once", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
 }
 
 export function saveKeyFindings(
