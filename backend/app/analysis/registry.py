@@ -296,64 +296,88 @@ WHERE {opp_motion_clause} AND {opp_closed_clause} AND {opp_close_date_clause}
         analysis_id="C3-ICP-SHARE",
         chapter=CH_PIPELINE, title="What share of pipeline is in high-ICP accounts?",
         viz="line", grain="quarter",
-        description="% of open pipeline value in High/Very-High ICP accounts vs historical average.",
-        formula="pipeline$ in high-ICP ÷ total pipeline$, by quarter",
+        description="% of open pipeline value on high-ICP accounts (account ICP score ≥ 70), overall and by expected-close quarter. Accounts without a score count as not-high.",
+        formula="pipeline$ in high-ICP ÷ total pipeline$, by expected-close quarter",
         fields_required=["opp.amount", "opp.stage", "acct.icp_overall"],
-        template="", time_filter=True,
+        template="", time_filter=False, computed=True,
     ),
     _e(
         analysis_id="C3-MATURITY",
         chapter=CH_PIPELINE, title="How mature is the pipeline?",
         viz="grouped_bar", grain="territory",
-        description="% of pipeline value in mid/late stages per territory, with average sales cycle.",
+        # Base open-pipeline fetch for Chapter 3 — the ICP/MEDDIC/risk analyses
+        # are computed deps on these rows (spec §5.2 batching).
+        description="% of open pipeline value in mid/late stages (Business Validation, Commitment & Negotiation) per territory and overall.",
         formula="Maturity = mid/late-stage pipeline$ ÷ total pipeline$",
-        fields_required=["opp.amount", "opp.stage", "acct.territory"],
-        template="", time_filter=False,
+        fields_required=["opp.amount", "opp.stage", "acct.territory", "opp.days_in_stage",
+                         "opp.engagement_score", "opp.meddic_summary", "acct.icp_overall"],
+        template="""
+SELECT Id, Amount, StageName, CloseDate, CreatedDate, OwnerId, Owner.Name,
+       LastStageChangeInDays, AI_Overall_Score__c, AI_Momentum_Score__c,
+       AI_MEDDIC_Summary__c, Account.Name, Account.AI_Overall_Score__c,
+       Account.Account_Territory__r.Name
+FROM Opportunity
+WHERE {motion_clause} AND {open_clause} AND {territory_clause} AND {seller_clause}
+""", time_filter=False,
     ),
     _e(
         analysis_id="C3-MEDD-ADOPT",
         chapter=CH_PIPELINE, title="How widely is MEDDPICC adopted?",
         viz="kpi", grain="territory",
-        description="% of open deals with a MEDDPICC note (AI MEDDIC summary present). Counted client-side — textarea fields are not SOQL-filterable.",
-        formula="deals with MEDDIC note ÷ open deals",
-        fields_required=["opp.meddic_summary", "opp.stage"],
-        template="", time_filter=False,
+        description="% of open deals with a MEDDPICC note and % with an engagement score, overall and per territory. Counted client-side — textarea fields are not SOQL-filterable.",
+        formula="deals with MEDDIC note ÷ open deals; deals with engagement score ÷ open deals",
+        fields_required=["opp.meddic_summary", "opp.engagement_score", "opp.stage"],
+        template="", time_filter=False, computed=True,
     ),
     _e(
         analysis_id="C3-RISK-ENGAGE",
         chapter=CH_PIPELINE, title="Deals at risk — low engagement",
         viz="table", grain="opportunity",
-        description="Open deals scoring below the engagement benchmark; count, value and at-risk list. Scored cohort only.",
-        formula="open deals with engagement score < benchmark",
+        description="Open deals scoring below the engagement benchmark (60); count, value and at-risk list. Scored cohort only (~17% of open deals carry a score).",
+        formula="open deals with engagement score < 60",
         fields_required=["opp.engagement_score", "opp.amount", "opp.stage", "opp.owner"],
-        template="", time_filter=False,
+        template="", time_filter=False, computed=True,
     ),
     _e(
         analysis_id="C3-RISK-STALLED",
         chapter=CH_PIPELINE, title="Deals at risk — stalled progress",
         viz="table", grain="opportunity",
-        description="Open deals stalled in their current stage vs stage benchmark; % aged >180 days; at-risk list.",
-        formula="LastStageChangeInDays vs stage benchmark",
+        description="Open deals stalled in their current stage (days in stage > max(30, 2× the stage median across open deals)); % aged >180 days; at-risk list.",
+        formula="LastStageChangeInDays > max(30, 2× stage median)",
         fields_required=["opp.days_in_stage", "opp.amount", "opp.stage", "opp.owner", "opp.momentum_score"],
-        template="", time_filter=False,
+        template="", time_filter=False, computed=True,
     ),
     _e(
         analysis_id="C3-RISK-SLIPPED",
         chapter=CH_PIPELINE, title="Deals at risk — slippage",
         viz="combo", grain="opportunity",
-        description="% of open deals slipped 90+/181+ days, where in the funnel slippage happens, and the slipped-deal list.",
-        formula="CloseDate pushes from field history, bucketed",
+        description="% of open deals slipped 90+/181+ days (cumulative forward CloseDate pushes), where in the funnel slippage happens, and the slipped-deal list.",
+        formula="CloseDate pushes from field history, per open deal",
         fields_required=["opp.slippage", "opp.amount", "opp.stage", "opp.owner"],
-        template="", time_filter=False,
+        template="""
+SELECT OpportunityId, OldValue, NewValue, CreatedDate,
+       Opportunity.StageName, Opportunity.Amount, Opportunity.Owner.Name,
+       Opportunity.Account.Name
+FROM OpportunityFieldHistory
+WHERE Field = 'CloseDate' AND Opportunity.IsClosed = false
+  AND {opp_motion_clause} AND {opp_territory_clause} AND {opp_seller_clause}
+""", time_filter=False,
     ),
     _e(
         analysis_id="C3-ACCT-RELATIONSHIP",
         chapter=CH_PIPELINE, title="How deep are our account relationships?",
         viz="grouped_bar", grain="account",
-        description="Account relationship-score breakdown by segment; single-threaded / not-engaged share (contacts with score ≥ 30).",
-        formula="contact score bands + threading per account segment",
-        fields_required=["contact.relationship_score", "ocr.contact"],
-        template="", time_filter=False,
+        description="Threading of open-pipeline accounts by employee-range segment: not engaged / single-threaded / multi-threaded, where engaged = contact role with relationship score ≥ 30.",
+        formula="distinct engaged contacts per account, segmented by EmployeeRange__c",
+        fields_required=["contact.relationship_score", "ocr.contact", "acct.employee_range"],
+        template="""
+SELECT OpportunityId, ContactId, Contact.AI_Overall_Score__c,
+       Opportunity.AccountId, Opportunity.Account.Name,
+       Opportunity.Account.EmployeeRange__c
+FROM OpportunityContactRole
+WHERE Opportunity.IsClosed = false
+  AND {opp_motion_clause} AND {opp_territory_clause} AND {opp_seller_clause}
+""", time_filter=False,
     ),
 
     # ================= Chapter 4 — Coach (People Insights) =================
@@ -368,31 +392,54 @@ WHERE {opp_motion_clause} AND {opp_closed_clause} AND {opp_close_date_clause}
     ),
     _e(
         analysis_id="C4-TERR-VELOCITY",
-        chapter=CH_COACH, title="Territory sales velocity leaderboard",
-        viz="table", grain="territory",
-        description="Per territory: quota attainment, velocity ($/day) + trend, win rate, cycle, avg deal, opp count, % revenue from expansion.",
-        formula="velocity + attainment per territory",
-        fields_required=["opp.amount", "opp.stage", "opp.close_date", "acct.territory",
+        chapter=CH_COACH, title="Sales velocity leaderboard",
+        viz="table", grain="seller",
+        description="Per seller (this org's territory field is account-based, so per-seller is the actionable grain): quota attainment, velocity ($/day), win rate, cycle, ACV, deal count, % of bookings from expansion. Sellers with ≥5 closed deals in the period.",
+        formula="velocity + attainment per seller",
+        fields_required=["opp.amount", "opp.stage", "opp.close_date", "opp.owner",
                          "quota.amount", "opp.created_date", "opp.record_type"],
-        template="", time_filter=True,
+        template="""
+SELECT Id, Amount, StageName, CloseDate, CreatedDate, OwnerId, Owner.Name,
+       RecordType.Name
+FROM Opportunity
+WHERE {motion_clause} AND {closed_clause} AND {close_date_clause}
+  AND {territory_clause} AND {seller_clause}
+""", time_filter=True,
     ),
     _e(
         analysis_id="C4-PIPE-COVERAGE",
         chapter=CH_COACH, title="Is pipeline coverage sufficient?",
-        viz="bar", grain="territory",
-        description="Open pipeline ÷ remaining quota (coverage ratio) per territory.",
-        formula="open pipeline$ ÷ (quota − bookings)",
-        fields_required=["opp.amount", "opp.stage", "acct.territory", "quota.amount"],
-        template="", time_filter=False,
+        viz="bar", grain="seller",
+        # ForecastingTypeId is the org's active 'Revenue' ForecastingType. The
+        # MasterLabel semi-join (AE-dashboard pattern) returns 0 rows under the
+        # API user's forecast-type visibility, so the Id is pinned directly.
+        description="Open pipeline ÷ remaining quota (quota − bookings for the period) per seller. Quota from monthly ForecastingQuota rows in the selected period.",
+        formula="open pipeline$ ÷ max(quota − bookings, 0)",
+        fields_required=["opp.amount", "opp.stage", "opp.owner", "quota.amount"],
+        template="""
+SELECT QuotaOwnerId, QuotaOwner.Name, SUM(QuotaAmount) q
+FROM ForecastingQuota
+WHERE ForecastingTypeId = '0Db0f000000CwnDCAS'
+  AND StartDate >= {period_start} AND StartDate <= {period_end}
+GROUP BY QuotaOwnerId, QuotaOwner.Name
+""", time_filter=True,
     ),
     _e(
         analysis_id="C4-COACH-FOCUS",
         chapter=CH_COACH, title="Where should coaching focus?",
         viz="table", grain="seller",
-        description="Each seller's at-risk deals (low engagement / stalled / slipped) aggregated into coaching priorities.",
-        formula="union of C3 risk lists grouped by seller",
-        fields_required=["opp.engagement_score", "opp.days_in_stage", "opp.slippage", "opp.owner"],
-        template="", time_filter=False, computed=True,
+        # Also the Chapter 4 open-pipeline fetch — C4-PIPE-COVERAGE reuses
+        # these rows for per-seller open pipeline (cross-chapter deps don't
+        # exist, so C4 carries its own open-pipeline analysis).
+        description="Each seller's at-risk open deals (low engagement / stalled / aged >180d) aggregated into a coaching focus.",
+        formula="per seller: open deals with score < 60, stalled vs stage median, aged > 180d",
+        fields_required=["opp.engagement_score", "opp.days_in_stage", "opp.owner", "opp.amount", "opp.stage"],
+        template="""
+SELECT Id, Amount, StageName, CreatedDate, OwnerId, Owner.Name,
+       LastStageChangeInDays, AI_Overall_Score__c
+FROM Opportunity
+WHERE {motion_clause} AND {open_clause} AND {territory_clause} AND {seller_clause}
+""", time_filter=False,
     ),
     _e(
         analysis_id="C4-DISCOVERY-SKILL",
