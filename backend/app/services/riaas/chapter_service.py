@@ -128,6 +128,8 @@ def _territory_efficiency(rows: list[dict]) -> dict:
     }
 
 
+from app.services.riaas.coach_service import TRANSFORMS as C4_TRANSFORMS  # noqa: E402
+from app.services.riaas.pipeline_service import TRANSFORMS as C3_TRANSFORMS  # noqa: E402
 from app.services.riaas.process_service import TRANSFORMS as C5_TRANSFORMS  # noqa: E402
 from app.services.riaas.winloss_service import TRANSFORMS as C2_TRANSFORMS  # noqa: E402
 
@@ -140,6 +142,8 @@ TRANSFORMS: dict[str, Callable | tuple[Callable, list[str]]] = {
     "C1-RPS-EXP": _rps_trend,
     "C1-TERR-EFF-GAP": _territory_efficiency,
     **C2_TRANSFORMS,
+    **C3_TRANSFORMS,
+    **C4_TRANSFORMS,
     **C5_TRANSFORMS,
 }
 

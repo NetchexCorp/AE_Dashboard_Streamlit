@@ -2,6 +2,16 @@
 
 One lesson per entry, newest first. Update entries instead of duplicating.
 
+## Quota (ForecastingQuota) — semi-join is invisible to the API user
+
+The AE-dashboard pattern `ForecastingTypeId IN (SELECT Id FROM ForecastingType
+WHERE MasterLabel = 'Revenue')` returns **0 rows** under the API user's
+forecast-type visibility, even though ForecastingType itself lists the type and
+the quota rows exist. Filtering directly on the active Revenue type Id
+(`ForecastingTypeId = '0Db0f000000CwnDCAS'`) returns them (40 owners, ~$22M for
+CY2026). C4-PIPE-COVERAGE pins the Id. Also: GROUP BY queries return the
+relationship name **flat** (`Name`), not nested (`QuotaOwner.Name`) — read both.
+
 ## MEDDIC is parseable from AI_MEDDIC_Summary__c (big unlock)
 
 The summary header carries `MEDDIC COVERAGE: n/6` plus `<b>ELEMENT | ✅/❌` markers →
