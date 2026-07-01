@@ -47,6 +47,12 @@ param schedulerTz string = 'America/Chicago'
 @description('Enables the SOQL-template write path. Writes also require admin role at the API layer; this is a deployment-level kill switch on top of that. Defaults to true so admins can edit SOQL templates from the dashboard out of the box.')
 param allowProdQueryWrites bool = true
 
+@description('Comma-separated email allowlist for RIaaS / Organization Performance. Empty keeps the feature dark (404) for everyone. Must match the value set on the live app — see infra/README.md "RIaaS rollout state".')
+param featureRiaasAllowedEmails string = ''
+
+@description('In-process scheduler master switch. Keep true in production; false only on staged 0%-traffic revisions.')
+param schedulerEnabled bool = true
+
 @description('Initial container image to deploy for both apps (used until you push real images).')
 param initialContainerImage string = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
 
@@ -157,6 +163,8 @@ module apiApp 'modules/containerApp-api.bicep' = {
     bootstrapAdminEmails: bootstrapAdminEmails
     schedulerTz: schedulerTz
     allowProdQueryWrites: allowProdQueryWrites
+    featureRiaasAllowedEmails: featureRiaasAllowedEmails
+    schedulerEnabled: schedulerEnabled
   }
 }
 

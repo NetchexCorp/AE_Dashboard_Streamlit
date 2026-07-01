@@ -13,6 +13,35 @@ Composition: `main.bicep` calls per-resource modules under `modules/`.
 | `containerApp-ui.bicep` | Nginx + React build — external ingress, optional Easy Auth |
 | `roleAssignments.bicep` | Managed identities → KV Secrets User + Storage Table Data Contributor |
 
+## RIaaS rollout state (until ELT approval)
+
+RIaaS / Organization Performance is live-but-dark from branch
+`feat/riaas-chapter-ux`, pending ELT approval; `main` does not have it yet.
+**RIaaS added no Azure resources** — no Bicep resource changes were needed.
+What Bicep users must know while this state lasts:
+
+- **The live apps have drifted from any old Bicep deployment on purpose.**
+  Deployed revisions were created imperatively (`az containerapp update`)
+  with branch-built images (`ae-dashboard-api:6733970`,
+  `ae-dashboard-ui:6a45acc`) and RIaaS runtime settings.
+- **Do not run `az deployment group create` on this resource group from
+  `main`'s templates** — the API app's env list would be replaced without
+  `FEATURE_RIAAS_ALLOWED_EMAILS`, silently turning RIaaS off (404 for
+  everyone), and the image would reset to whatever the `image` param says.
+- This branch's templates declare the RIaaS settings as parameters
+  (`featureRiaasAllowedEmails`, `schedulerEnabled`, plus module-level
+  `sendgridSandboxMode` / `sendgridRecipientOverride`), so a redeploy **from
+  this branch** with `featureRiaasAllowedEmails` set to the live value is
+  drift-free. Current live value: `pmankar@netchexonline.com`.
+- The UI app also carries a `staging` **revision label**
+  (`https://aedash-ui---staging.<env-domain>`) used for pre-promotion smoke
+  tests; labels are runtime state, not Bicep-managed, and survive template
+  redeploys but not app re-creation. Its Entra redirect URI is registered
+  alongside the production one.
+- On ELT approval: merge the branch to `main`, promote the staged UI
+  revision (see `docs/riaas/runbook.md`), and this section's warnings
+  collapse to "deploy from `main` with `featureRiaasAllowedEmails` set".
+
 ## Easy Auth (Entra ID)
 
 `parameters.example.json` ships with the Entra App Registration client ID

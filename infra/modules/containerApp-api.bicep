@@ -36,6 +36,18 @@ param containerMemory string = '1.0Gi'
 @description('Enables the SOQL-template write path. Writes still require an admin role at the API layer; this is a deployment-level kill switch on top of that.')
 param allowProdQueryWrites bool = true
 
+@description('Comma-separated email allowlist for the RIaaS / Organization Performance surface. Empty = feature dark for everyone (endpoints return 404).')
+param featureRiaasAllowedEmails string = ''
+
+@description('Master switch for the in-process APScheduler. Set false on 0%-traffic staged revisions so two schedulers never run at once.')
+param schedulerEnabled bool = true
+
+@description('SendGrid sandbox mode — accepted by the API but never delivered. Use on staged revisions.')
+param sendgridSandboxMode bool = false
+
+@description('When set, every outbound email is redirected to this address instead of real recipients.')
+param sendgridRecipientOverride string = ''
+
 resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
   name: name
   location: location
@@ -95,6 +107,10 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
               { name: 'BOOTSTRAP_ADMIN_EMAILS', value: bootstrapAdminEmails }
               { name: 'SCHEDULER_TZ', value: schedulerTz }
               { name: 'ALLOW_PROD_QUERY_WRITES', value: allowProdQueryWrites ? 'true' : 'false' }
+              { name: 'FEATURE_RIAAS_ALLOWED_EMAILS', value: featureRiaasAllowedEmails }
+              { name: 'SCHEDULER_ENABLED', value: schedulerEnabled ? 'true' : 'false' }
+              { name: 'SENDGRID_SANDBOX_MODE', value: sendgridSandboxMode ? 'true' : 'false' }
+              { name: 'SENDGRID_RECIPIENT_OVERRIDE', value: sendgridRecipientOverride }
             ],
             empty(sendgridApiKey)
               ? []
