@@ -2,6 +2,36 @@
 
 One lesson per entry, newest first. Update entries instead of duplicating.
 
+## MEDDIC is parseable from AI_MEDDIC_Summary__c (big unlock)
+
+The summary header carries `MEDDIC COVERAGE: n/6` plus `<b>ELEMENT | ✅/❌` markers →
+`winloss_service.parse_meddic()` extracts a 0–6 score and per-element confirmation.
+This unblocked C2-QUAL-WR, C2-MEDD-ELEMENTS, C5-MEDD-BY-STAGE. Cohort is small
+(~135 closed / ~143 open scored deals) — every consumer states coverage.
+
+## More field-truth corrections (live-verified)
+
+- `ICP_Segmentation__c` is on **Contact/Lead only**, NOT Account — C2-EFF-ICP uses
+  `EmployeeRange__c` + `ICP_Industry_Group__c` only.
+- ~90% of OpportunityContactRole contacts have no `Job_Title__c` → persona analyses
+  are dominated by "Unknown" (deck itself flags this; surfaced as pct_untitled).
+- Won-deal stage history shows near-zero stage durations (deals are often created at
+  close time for booking entry) — median NB cycle is ~10 days. Formulas are correct;
+  this is org data reality and belongs in Key Findings, not code workarounds.
+- Zero-win channels must not be dropped from C5-CHANNEL-ROI (efficiency None ≠ hide).
+
+## Report pipeline (Phase 5) decisions
+
+- The report renderer normalizes heterogeneous analysis payloads into KPI lists +
+  tables server-side (`report_renderer._normalize`); the Jinja template stays dumb,
+  inline-styled, email/print-safe. Live render: 186 KB, all five chapters.
+- RIaaS schedules live in `RiSchedules` via `RiScheduleService(ScheduleService)`
+  (table override only); APScheduler job ids `riaas-schedule-*`.
+- New safety toggles in config: `SCHEDULER_ENABLED` (gates scheduler startup),
+  `SENDGRID_SANDBOX_MODE`, `SENDGRID_RECIPIENT_OVERRIDE` (both inside
+  `EmailService.send_html`, so AE digests inherit the same protection).
+- Deploy runbook: docs/riaas/runbook.md.
+
 ## Org schema truth (confirmed live 2026-07-02, org 00DA0000000JfyFMAS)
 
 Full describes cached in scratchpad `org/*.json`. What differs from the spec's guesses:
