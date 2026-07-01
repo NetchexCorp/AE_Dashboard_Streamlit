@@ -73,25 +73,28 @@ function AlignFlag({ flag }: { flag: string | null }) {
 
 function IcpAlignViz({ data }: { data: IcpAlignData }) {
   const cols: TableCol<IcpAlignRow>[] = [
-    { label: "Industry", render: (r) => r.industry },
-    { label: "Deals", align: "right", render: (r) => fmtNumber(r.deals) },
-    { label: "Win rate", align: "right", render: (r) => fmtPercent(r.win_rate) },
+    { label: "Industry", value: (r) => r.industry, render: (r) => r.industry },
+    { label: "Deals", align: "right", value: (r) => r.deals, render: (r) => fmtNumber(r.deals) },
+    { label: "Win rate", align: "right", value: (r) => r.win_rate, render: (r) => fmtPercent(r.win_rate) },
     {
       label: "Volume rank",
       align: "right",
+      value: (r) => r.volume_rank,
       render: (r) => fmtNumber(r.volume_rank),
     },
     {
       label: "Win-rate rank",
       align: "right",
+      value: (r) => r.win_rate_rank,
       render: (r) => fmtNumber(r.win_rate_rank),
     },
     {
       label: "Gap",
       align: "right",
+      value: (r) => r.rank_gap,
       render: (r) => (r.rank_gap > 0 ? `+${r.rank_gap}` : String(r.rank_gap)),
     },
-    { label: "Flag", render: (r) => <AlignFlag flag={r.flag} /> },
+    { label: "Flag", value: (r) => r.flag, render: (r) => <AlignFlag flag={r.flag} /> },
   ];
   return (
     <div className="space-y-2">
@@ -99,7 +102,7 @@ function IcpAlignViz({ data }: { data: IcpAlignData }) {
         cols={cols}
         rows={data.industries ?? []}
         rowKey={(r) => r.industry}
-        maxRows={15}
+        exportName="icp-alignment"
       />
       <Note text={data.note} />
     </div>
@@ -277,15 +280,17 @@ interface StageCriteriaData {
 
 function StageCriteriaViz({ data }: { data: StageCriteriaData }) {
   const cols: TableCol<StageCriteriaRow>[] = [
-    { label: "Stage", render: (r) => r.stage },
+    { label: "Stage", value: (r) => r.stage, render: (r) => r.stage },
     {
       label: "% of winners recording stage",
       align: "right",
+      value: (r) => r.recorded_share,
       render: (r) => fmtPercent(r.recorded_share),
     },
     {
       label: "Median days in stage (won)",
       align: "right",
+      value: (r) => r.median_days_won,
       render: (r) => fmtValue(r.median_days_won, "days"),
     },
   ];

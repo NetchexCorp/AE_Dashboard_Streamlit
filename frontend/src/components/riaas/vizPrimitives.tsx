@@ -1,4 +1,6 @@
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
+import { DataTable } from "@/components/tables/DataTable";
 import { cn } from "@/lib/cn";
 import { fmtCurrency, fmtNumber, fmtPercent } from "@/lib/formatters";
 
@@ -36,6 +38,34 @@ export function axisFormatter(format: VizFormat): (v: number) => string {
   if (format === "currency" || format === "perDay")
     return (v) => fmtCurrency(v);
   return (v) => String(v);
+}
+
+interface AxisTickProps {
+  x?: number;
+  y?: number;
+  payload?: { value?: string | number };
+}
+
+/**
+ * Single-line, ellipsized category tick for horizontal bar charts. Recharts'
+ * default tick word-wraps long labels into overlapping lines; this keeps one
+ * line per bar and exposes the full label as a native hover title.
+ */
+export function makeCategoryTick(axisWidth: number) {
+  const maxChars = Math.max(8, Math.floor((axisWidth - 12) / 5.4));
+  return function CategoryAxisTick({ x, y, payload }: AxisTickProps) {
+    const label = String(payload?.value ?? "");
+    const text =
+      label.length > maxChars
+        ? `${label.slice(0, maxChars - 1).trimEnd()}…`
+        : label;
+    return (
+      <text x={x} y={y} dy={3.5} textAnchor="end" fontSize={11} fill="#666">
+        <title>{label}</title>
+        {text}
+      </text>
+    );
+  };
 }
 
 /** Distinct labels present in `values`, sorted by a canonical order list. */
@@ -98,63 +128,63 @@ export interface TableCol<T> {
   label: string;
   align?: "left" | "right";
   render: (row: T) => ReactNode;
+  /** Raw value used for sorting, searching, and CSV export. Columns without
+   *  a value accessor render fine but can't be sorted or matched by search. */
+  value?: (row: T) => string | number | null;
 }
 
+/**
+ * Analysis-card table built on the Individual-dashboard DataTable, so every
+ * RIaaS table gets the same search / sort / pagination / CSV affordances.
+ * Search and paging controls appear only once the table is big enough to
+ * need them.
+ */
 export function SimpleTable<T>({
   cols,
   rows,
   rowKey,
-  maxRows,
+  exportName = "riaas-analysis",
 }: {
   cols: TableCol<T>[];
   rows: T[];
   rowKey: (row: T, index: number) => string;
-  maxRows?: number;
+  exportName?: string;
 }) {
+  const columns = useMemo<ColumnDef<T, unknown>[]>(
+    () =>
+      cols.map((c, i) => ({
+        id: `${i}:${c.label}`,
+        header: c.label,
+        accessorFn: c.value ?? (() => null),
+        enableSorting: Boolean(c.value),
+        enableGlobalFilter: Boolean(c.value),
+        cell: ({ row }) => (
+          <span
+            className={cn(
+              "block tabular-nums",
+              c.align === "right" && "text-right",
+            )}
+          >
+            {c.render(row.original)}
+          </span>
+        ),
+        meta: { align: c.align },
+      })),
+    [cols],
+  );
+  void rowKey; // row identity handled by DataTable's row model
   if (rows.length === 0) return <EmptyViz />;
-  const shown = maxRows != null ? rows.slice(0, maxRows) : rows;
-  const hidden = rows.length - shown.length;
+  const compact = rows.length <= 10;
   return (
-    <div className="space-y-1.5">
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-[11px] tabular-nums">
-          <thead>
-            <tr className="text-muted-foreground">
-              {cols.map((c) => (
-                <th
-                  key={c.label}
-                  className={cn(
-                    "px-2 py-1 font-medium",
-                    c.align === "right" ? "text-right" : "text-left",
-                  )}
-                >
-                  {c.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {shown.map((row, i) => (
-              <tr key={rowKey(row, i)} className="border-t border-border/40">
-                {cols.map((c) => (
-                  <td
-                    key={c.label}
-                    className={cn(
-                      "px-2 py-1",
-                      c.align === "right" ? "text-right" : "text-left",
-                    )}
-                  >
-                    {c.render(row)}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {hidden > 0 && (
-        <p className="text-xs text-muted-foreground">+{hidden} more</p>
-      )}
-    </div>
+    <DataTable
+      data={rows}
+      columns={columns}
+      enableGlobalSearch={!compact}
+      pageSizes={compact ? [] : [10, 25, 50, 100]}
+      initialPageSize={10}
+      enableExport={!compact}
+      exportFilename={exportName}
+      stickyFirstColumn={false}
+    />
   );
 }

@@ -41,34 +41,39 @@ function attainmentClass(v: number | null): string | undefined {
 
 function TerrVelocityViz({ data }: { data: TerrVelocityData }) {
   const cols: TableCol<VelocitySeller>[] = [
-    { label: "Seller", render: (s) => s.seller ?? "—" },
-    { label: "Deals", align: "right", render: (s) => fmtNumber(s.deals) },
-    { label: "Win rate", align: "right", render: (s) => fmtPercent(s.win_rate) },
-    { label: "ACV", align: "right", render: (s) => fmtCurrency(s.acv) },
+    { label: "Seller", value: (s) => s.seller, render: (s) => s.seller ?? "—" },
+    { label: "Deals", align: "right", value: (s) => s.deals, render: (s) => fmtNumber(s.deals) },
+    { label: "Win rate", align: "right", value: (s) => s.win_rate, render: (s) => fmtPercent(s.win_rate) },
+    { label: "ACV", align: "right", value: (s) => s.acv, render: (s) => fmtCurrency(s.acv) },
     {
       label: "Cycle",
       align: "right",
+      value: (s) => s.cycle_days,
       render: (s) => fmtValue(s.cycle_days, "days"),
     },
     {
       label: "Velocity",
       align: "right",
+      value: (s) => s.velocity,
       render: (s) => fmtValue(s.velocity, "perDay"),
     },
     {
       label: "Bookings",
       align: "right",
+      value: (s) => s.bookings,
       render: (s) => fmtCurrency(s.bookings),
     },
     {
       label: "% expansion",
       align: "right",
+      value: (s) => s.pct_bookings_expansion,
       render: (s) => fmtPercent(s.pct_bookings_expansion),
     },
-    { label: "Quota", align: "right", render: (s) => fmtCurrency(s.quota) },
+    { label: "Quota", align: "right", value: (s) => s.quota, render: (s) => fmtCurrency(s.quota) },
     {
       label: "Attainment",
       align: "right",
+      value: (s) => s.attainment,
       render: (s) => (
         <span className={attainmentClass(s.attainment)}>
           {fmtPercent(s.attainment)}
@@ -82,6 +87,7 @@ function TerrVelocityViz({ data }: { data: TerrVelocityData }) {
         cols={cols}
         rows={data.sellers ?? []}
         rowKey={(s) => s.seller_id}
+        exportName="velocity-leaderboard"
       />
       {data.min_closed_deals != null && (
         <p className="text-xs text-muted-foreground">
@@ -143,26 +149,30 @@ function CoverageBar({ coverage }: { coverage: number | null }) {
 
 function PipeCoverageViz({ data }: { data: PipeCoverageData }) {
   const cols: TableCol<CoverageSeller>[] = [
-    { label: "Seller", render: (s) => s.seller ?? "—" },
-    { label: "Quota", align: "right", render: (s) => fmtCurrency(s.quota) },
+    { label: "Seller", value: (s) => s.seller, render: (s) => s.seller ?? "—" },
+    { label: "Quota", align: "right", value: (s) => s.quota, render: (s) => fmtCurrency(s.quota) },
     {
       label: "Bookings",
       align: "right",
+      value: (s) => s.bookings,
       render: (s) => fmtCurrency(s.bookings),
     },
     {
       label: "Open pipeline",
       align: "right",
+      value: (s) => s.open_pipeline,
       render: (s) => fmtCurrency(s.open_pipeline),
     },
     {
       label: "Remaining quota",
       align: "right",
+      value: (s) => s.remaining_quota,
       render: (s) => fmtCurrency(s.remaining_quota),
     },
     {
       label: "Coverage",
       align: "right",
+      value: (s) => s.coverage,
       render: (s) => <CoverageBar coverage={s.coverage} />,
     },
   ];
@@ -185,6 +195,7 @@ function PipeCoverageViz({ data }: { data: PipeCoverageData }) {
         cols={cols}
         rows={data.sellers ?? []}
         rowKey={(s) => s.seller_id}
+        exportName="pipeline-coverage"
       />
       <Note text={data.note} />
     </div>
@@ -224,25 +235,32 @@ function FocusBadge({ focus }: { focus: string | null }) {
 
 function CoachFocusViz({ data }: { data: CoachFocusData }) {
   const cols: TableCol<FocusSeller>[] = [
-    { label: "Seller", render: (s) => s.seller ?? "—" },
+    { label: "Seller", value: (s) => s.seller, render: (s) => s.seller ?? "—" },
     {
       label: "Open deals",
       align: "right",
+      value: (s) => s.open_deals,
       render: (s) => fmtNumber(s.open_deals),
     },
     {
       label: "Low engagement",
       align: "right",
+      value: (s) => s.low_engagement,
       render: (s) => fmtNumber(s.low_engagement),
     },
-    { label: "Stalled", align: "right", render: (s) => fmtNumber(s.stalled) },
-    { label: "Aged >180d", align: "right", render: (s) => fmtNumber(s.aged) },
+    { label: "Stalled", align: "right", value: (s) => s.stalled, render: (s) => fmtNumber(s.stalled) },
+    { label: "Aged >180d", align: "right", value: (s) => s.aged, render: (s) => fmtNumber(s.aged) },
     {
       label: "Total risk",
       align: "right",
+      value: (s) => s.total_risk,
       render: (s) => fmtNumber(s.total_risk),
     },
-    { label: "Focus", render: (s) => <FocusBadge focus={s.focus} /> },
+    {
+      label: "Focus",
+      value: (s) => (s.focus ? FOCUS_LABELS[s.focus] ?? s.focus : null),
+      render: (s) => <FocusBadge focus={s.focus} />,
+    },
   ];
   return (
     <div className="space-y-2">
@@ -250,7 +268,7 @@ function CoachFocusViz({ data }: { data: CoachFocusData }) {
         cols={cols}
         rows={data.sellers ?? []}
         rowKey={(s) => s.seller_id}
-        maxRows={15}
+        exportName="coaching-focus"
       />
       <Note text={data.note} />
     </div>

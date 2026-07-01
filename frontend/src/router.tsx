@@ -84,6 +84,7 @@ const orgChapterRoute = createRoute({
   validateSearch: (raw: Record<string, unknown>): ChapterSearch => ({
     period: typeof raw.period === "string" ? raw.period : undefined,
     motion: typeof raw.motion === "string" ? raw.motion : undefined,
+    section: typeof raw.section === "string" ? raw.section : undefined,
   }),
 }).lazy(() =>
   import("@/pages/org-performance/ChapterRoute.lazy").then((m) => m.Route),

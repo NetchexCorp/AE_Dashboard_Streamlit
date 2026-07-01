@@ -4,11 +4,13 @@ import { type ChapterResponse, fetchChapter } from "@/api/riaas";
 import { AnalysisCard } from "@/components/riaas/AnalysisCard";
 import { KeyFindingsPanel } from "@/components/riaas/KeyFindingsPanel";
 import { useMe } from "@/hooks/useMe";
-import { chapterBySlug } from "@/lib/chapters";
+import { CHAPTER_SECTIONS, chapterBySlug } from "@/lib/chapters";
+import { cn } from "@/lib/cn";
 
 export interface ChapterSearch {
   period?: string;
   motion?: string;
+  section?: string;
 }
 
 export const DEFAULT_PERIOD = "last_4_quarters";
@@ -153,23 +155,86 @@ export function ChapterRoute() {
       )}
 
       {chapter.data && (
-        <>
-          <div className="grid gap-3 lg:grid-cols-2">
-            {chapter.data.analyses.map((a) => (
-              <AnalysisCard
-                key={a.analysis_id}
-                analysis={a}
-                className={
-                  spansBothColumns(a.analysis_id, a.viz)
-                    ? "lg:col-span-2"
-                    : undefined
-                }
-              />
-            ))}
-          </div>
-          <KeyFindingsPanel slug={slug} findings={chapter.data.key_findings} />
-        </>
+        <ChapterSections
+          slug={slug}
+          analyses={chapter.data.analyses}
+          activeSection={search.section}
+          onSelect={(key) => setSearch({ section: key })}
+        />
+      )}
+      {chapter.data && (
+        <KeyFindingsPanel slug={slug} findings={chapter.data.key_findings} />
       )}
     </div>
+  );
+}
+
+// Sub-page tabs: each chapter's analyses are grouped into sections so a
+// chapter never renders as one very long page. Unmapped analyses fall into
+// the first section.
+function ChapterSections({
+  slug,
+  analyses,
+  activeSection,
+  onSelect,
+}: {
+  slug: string;
+  analyses: ChapterResponse["analyses"];
+  activeSection?: string;
+  onSelect: (key: string | undefined) => void;
+}) {
+  const sections = CHAPTER_SECTIONS[slug] ?? [];
+  const mapped = new Set(sections.flatMap((s) => s.analyses));
+  const bySection = (keys: string[], first: boolean) =>
+    analyses.filter(
+      (a) =>
+        keys.includes(a.analysis_id) || (first && !mapped.has(a.analysis_id)),
+    );
+  const active =
+    sections.find((s) => s.key === activeSection) ?? sections[0];
+  const shown = active
+    ? bySection(active.analyses, active === sections[0])
+    : analyses;
+
+  return (
+    <>
+      {sections.length > 1 && (
+        <div className="flex flex-wrap gap-1 border-b border-border">
+          {sections.map((s) => {
+            const isActive = s.key === active?.key;
+            return (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() =>
+                  onSelect(s.key === sections[0].key ? undefined : s.key)
+                }
+                className={cn(
+                  "-mb-px rounded-t-md border-b-2 px-3 py-1.5 text-sm transition-colors",
+                  isActive
+                    ? "border-primary font-medium text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {s.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+      <div className="grid gap-3 lg:grid-cols-2">
+        {shown.map((a) => (
+          <AnalysisCard
+            key={a.analysis_id}
+            analysis={a}
+            className={
+              spansBothColumns(a.analysis_id, a.viz)
+                ? "lg:col-span-2"
+                : undefined
+            }
+          />
+        ))}
+      </div>
+    </>
   );
 }

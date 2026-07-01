@@ -14,6 +14,7 @@ import {
   axisFormatter,
   EmptyViz,
   fmtValue,
+  makeCategoryTick,
   type VizFormat,
 } from "./vizPrimitives";
 
@@ -118,7 +119,7 @@ export function GroupedBarsChart({
             <YAxis
               type="category"
               dataKey="label"
-              tick={CHART_TICK}
+              tick={makeCategoryTick(categoryWidth)}
               width={categoryWidth}
               interval={0}
             />

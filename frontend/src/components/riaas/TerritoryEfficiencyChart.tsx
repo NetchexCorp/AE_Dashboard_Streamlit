@@ -15,8 +15,11 @@ import {
   CHART_GRID,
   CHART_TICK,
 } from "./chartTheme";
+import { makeCategoryTick } from "./vizPrimitives";
 
 const TOP_N = 15;
+const AXIS_WIDTH = 180;
+const categoryTick = makeCategoryTick(AXIS_WIDTH);
 
 function TerritoryTooltip({
   active,
@@ -73,8 +76,8 @@ export function TerritoryEfficiencyChart({ data }: { data: TerritoryEffData }) {
             <YAxis
               type="category"
               dataKey="name"
-              tick={CHART_TICK}
-              width={130}
+              tick={categoryTick}
+              width={AXIS_WIDTH}
               interval={0}
             />
             <Tooltip content={<TerritoryTooltip />} cursor={CHART_CURSOR} />

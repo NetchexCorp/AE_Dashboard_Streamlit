@@ -20,8 +20,6 @@ import {
   type TableCol,
 } from "./vizPrimitives";
 
-const RISK_ROW_CAP = 15;
-
 interface MaturityData {
   overall?: {
     deals: number;
@@ -196,11 +194,11 @@ interface RiskEngageData {
 
 function RiskEngageViz({ data }: { data: RiskEngageData }) {
   const cols: TableCol<RiskEngageDeal>[] = [
-    { label: "Seller", render: (d) => d.seller ?? "—" },
-    { label: "Account", render: (d) => d.opportunity ?? "—" },
-    { label: "Stage", render: (d) => d.stage ?? "—" },
-    { label: "Amount", align: "right", render: (d) => fmtCurrency(d.amount) },
-    { label: "Score", align: "right", render: (d) => fmtNumber(d.score) },
+    { label: "Seller", value: (d) => d.seller, render: (d) => d.seller ?? "—" },
+    { label: "Account", value: (d) => d.opportunity, render: (d) => d.opportunity ?? "—" },
+    { label: "Stage", value: (d) => d.stage, render: (d) => d.stage ?? "—" },
+    { label: "Amount", align: "right", value: (d) => d.amount, render: (d) => fmtCurrency(d.amount) },
+    { label: "Score", align: "right", value: (d) => d.score, render: (d) => fmtNumber(d.score) },
   ];
   return (
     <div className="space-y-2">
@@ -214,7 +212,7 @@ function RiskEngageViz({ data }: { data: RiskEngageData }) {
         cols={cols}
         rows={data.deals ?? []}
         rowKey={(d, i) => `${d.opportunity}-${i}`}
-        maxRows={RISK_ROW_CAP}
+        exportName="risk-low-engagement"
       />
       <Note text={data.note} />
     </div>
@@ -241,18 +239,20 @@ interface RiskStalledData {
 
 function RiskStalledViz({ data }: { data: RiskStalledData }) {
   const cols: TableCol<RiskStalledDeal>[] = [
-    { label: "Seller", render: (d) => d.seller ?? "—" },
-    { label: "Account", render: (d) => d.opportunity ?? "—" },
-    { label: "Stage", render: (d) => d.stage ?? "—" },
-    { label: "Amount", align: "right", render: (d) => fmtCurrency(d.amount) },
+    { label: "Seller", value: (d) => d.seller, render: (d) => d.seller ?? "—" },
+    { label: "Account", value: (d) => d.opportunity, render: (d) => d.opportunity ?? "—" },
+    { label: "Stage", value: (d) => d.stage, render: (d) => d.stage ?? "—" },
+    { label: "Amount", align: "right", value: (d) => d.amount, render: (d) => fmtCurrency(d.amount) },
     {
       label: "Days in stage",
       align: "right",
+      value: (d) => d.days_in_stage,
       render: (d) => fmtNumber(d.days_in_stage),
     },
     {
       label: "Stage median",
       align: "right",
+      value: (d) => d.stage_median,
       render: (d) => fmtNumber(d.stage_median),
     },
   ];
@@ -268,7 +268,7 @@ function RiskStalledViz({ data }: { data: RiskStalledData }) {
         cols={cols}
         rows={data.deals ?? []}
         rowKey={(d, i) => `${d.opportunity}-${i}`}
-        maxRows={RISK_ROW_CAP}
+        exportName="risk-stalled"
       />
       <Note text={data.note} />
     </div>
@@ -297,22 +297,24 @@ function RiskSlippedViz({ data }: { data: RiskSlippedData }) {
   const stageCols: TableCol<
     NonNullable<RiskSlippedData["stages"]>[number]
   >[] = [
-    { label: "Stage", render: (s) => s.stage ?? "—" },
-    { label: "Slipped deals", align: "right", render: (s) => fmtNumber(s.deals) },
+    { label: "Stage", value: (s) => s.stage, render: (s) => s.stage ?? "—" },
+    { label: "Slipped deals", align: "right", value: (s) => s.deals, render: (s) => fmtNumber(s.deals) },
     {
       label: "Avg slip (days)",
       align: "right",
+      value: (s) => s.avg_slip_days,
       render: (s) => fmtNumber(s.avg_slip_days),
     },
   ];
   const dealCols: TableCol<RiskSlippedDeal>[] = [
-    { label: "Seller", render: (d) => d.seller ?? "—" },
-    { label: "Account", render: (d) => d.opportunity ?? "—" },
-    { label: "Stage", render: (d) => d.stage ?? "—" },
-    { label: "Amount", align: "right", render: (d) => fmtCurrency(d.amount) },
+    { label: "Seller", value: (d) => d.seller, render: (d) => d.seller ?? "—" },
+    { label: "Account", value: (d) => d.opportunity, render: (d) => d.opportunity ?? "—" },
+    { label: "Stage", value: (d) => d.stage, render: (d) => d.stage ?? "—" },
+    { label: "Amount", align: "right", value: (d) => d.amount, render: (d) => fmtCurrency(d.amount) },
     {
       label: "Slip (days)",
       align: "right",
+      value: (d) => d.slip_days,
       render: (d) => fmtNumber(d.slip_days),
     },
   ];
@@ -344,7 +346,7 @@ function RiskSlippedViz({ data }: { data: RiskSlippedData }) {
           cols={dealCols}
           rows={data.deals ?? []}
           rowKey={(d, i) => `${d.opportunity}-${i}`}
-          maxRows={RISK_ROW_CAP}
+          exportName="risk-slipped"
         />
       </div>
       <Note text={data.note} />

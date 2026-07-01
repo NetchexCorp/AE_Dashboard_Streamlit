@@ -18,7 +18,10 @@ import {
   CHART_LINE,
   CHART_TICK,
 } from "./chartTheme";
-import { EmptyViz } from "./vizPrimitives";
+import { EmptyViz, makeCategoryTick } from "./vizPrimitives";
+
+const H_AXIS_WIDTH = 170;
+const categoryTick = makeCategoryTick(H_AXIS_WIDTH);
 
 export interface CohortRow {
   name: string;
@@ -109,8 +112,8 @@ export function CohortMetricsChart({
               <YAxis
                 type="category"
                 dataKey="name"
-                tick={CHART_TICK}
-                width={130}
+                tick={categoryTick}
+                width={H_AXIS_WIDTH}
                 interval={0}
               />
               <Tooltip
