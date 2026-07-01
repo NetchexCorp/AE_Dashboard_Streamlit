@@ -6,10 +6,21 @@ import type {
   VelocityQuarter,
 } from "@/api/riaas";
 import { cn } from "@/lib/cn";
+import { COACH_RENDERERS } from "./CoachViz";
 import { CrmCompletenessKpis } from "./CrmCompletenessKpis";
+import { PIPELINE_RENDERERS } from "./PipelineViz";
+import { PROCESS_RENDERERS } from "./ProcessViz";
 import { RpsTrendChart } from "./RpsTrendChart";
 import { TerritoryEfficiencyChart } from "./TerritoryEfficiencyChart";
 import { VelocityTrendChart } from "./VelocityTrendChart";
+import { WINLOSS_RENDERERS } from "./WinLossViz";
+
+const RENDERERS = {
+  ...WINLOSS_RENDERERS,
+  ...PIPELINE_RENDERERS,
+  ...COACH_RENDERERS,
+  ...PROCESS_RENDERERS,
+};
 
 function StatusBadge({ status }: { status: ChapterAnalysis["status"] }) {
   if (status === "ok") return null;
@@ -47,12 +58,15 @@ function AnalysisViz({ analysis }: { analysis: ChapterAnalysis }) {
       return (
         <TerritoryEfficiencyChart data={data as unknown as TerritoryEffData} />
       );
-    default:
+    default: {
+      const Renderer = RENDERERS[analysis.analysis_id];
+      if (Renderer) return <Renderer data={data} />;
       return (
         <p className="text-sm text-muted-foreground">
           No chart renderer for this analysis yet.
         </p>
       );
+    }
   }
 }
 

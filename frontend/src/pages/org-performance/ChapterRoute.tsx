@@ -30,9 +30,16 @@ const MOTION_OPTIONS = [
 
 const route = getRouteApi("/org/chapters/$slug");
 
-// Full-width cards: KPI rows and the (long) horizontal territory chart.
+// Full-width cards: KPI rows, wide tables/matrices, and the (long)
+// horizontal territory chart.
 function spansBothColumns(analysisId: string, viz: string): boolean {
-  return viz === "kpi" || analysisId === "C1-TERR-EFF-GAP";
+  return (
+    viz === "kpi" ||
+    viz === "table" ||
+    viz === "matrix" ||
+    analysisId === "C1-TERR-EFF-GAP" ||
+    analysisId === "C3-RISK-SLIPPED"
+  );
 }
 
 export function ChapterRoute() {
