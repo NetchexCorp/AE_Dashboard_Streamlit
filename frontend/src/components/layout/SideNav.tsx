@@ -26,6 +26,9 @@ interface Entry {
 interface TopEntry extends Entry {
   Icon: LucideIcon;
   subnav?: Entry[];
+  // Path prefix used for active-state matching when it differs from `to`
+  // (e.g. Config links to its first page but owns the whole /org/config tree).
+  match?: string;
 }
 
 const DASHBOARD_SUBNAV: Entry[] = [
@@ -44,7 +47,8 @@ const CONFIG_SUBNAV: Entry[] = [
   { to: "/config/roster", label: "AE Roster" },
 ];
 
-// "Individual Performance" group — the per-AE dashboard users see day-to-day.
+// "Individual Performance" group — the per-AE dashboard users see day-to-day,
+// with its own Reports, Config, and Activity subsections.
 const INDIVIDUAL_NAV: TopEntry[] = [
   {
     to: "/dashboard",
@@ -53,28 +57,23 @@ const INDIVIDUAL_NAV: TopEntry[] = [
     subnav: DASHBOARD_SUBNAV,
   },
   { to: "/schedules", label: "Reports", Icon: Mail },
+  { to: "/config", label: "Config", Icon: Settings, subnav: CONFIG_SUBNAV },
+  { to: "/audit", label: "Activity", Icon: Activity },
 ];
 
 // "Organization Performance" group — RIaaS revenue intelligence. Rendered
-// only when /api/me reports features?.riaas; config entries are admin-only.
-const ORG_SUBNAV: Entry[] = [
+// only when /api/me reports features?.riaas; Config is admin-only.
+const ORG_CHAPTERS_SUBNAV: Entry[] = [
   { to: "/org", label: "Overview" },
   ...CHAPTERS.map((c) => ({
     to: `/org/chapters/${c.slug}`,
     label: c.navLabel,
   })),
-  { to: "/org/report", label: "Revenue Report" },
 ];
 
 const ORG_CONFIG_SUBNAV: Entry[] = [
   { to: "/org/config/analyses", label: "Analysis Config" },
   { to: "/org/config/fields", label: "Field Dictionary" },
-];
-
-// "Governance" group — admin / audit. Visually separated below.
-const ADMIN_NAV: TopEntry[] = [
-  { to: "/config", label: "Config", Icon: Settings, subnav: CONFIG_SUBNAV },
-  { to: "/audit", label: "Activity", Icon: Activity },
 ];
 
 export function SideNav() {
@@ -87,10 +86,22 @@ export function SideNav() {
   const orgNav: TopEntry[] = [
     {
       to: "/org",
-      label: "Overview",
+      label: "Chapters",
       Icon: Building2,
-      subnav: isAdmin ? [...ORG_SUBNAV, ...ORG_CONFIG_SUBNAV] : ORG_SUBNAV,
+      subnav: ORG_CHAPTERS_SUBNAV,
     },
+    { to: "/org/report", label: "Reports", Icon: Mail },
+    ...(isAdmin
+      ? [
+          {
+            to: "/org/config/analyses",
+            match: "/org/config",
+            label: "Config",
+            Icon: Settings,
+            subnav: ORG_CONFIG_SUBNAV,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -122,8 +133,6 @@ export function SideNav() {
             <NavGroup nav={orgNav} collapsed={collapsed} pathname={location.pathname} />
           </>
         )}
-        <div className="my-2 mx-1 border-t border-border/60" />
-        <NavGroup nav={ADMIN_NAV} collapsed={collapsed} pathname={location.pathname} />
       </nav>
 
       {/* Footer — user identity + collapse toggle */}
@@ -176,6 +185,14 @@ function NavGroup({
   collapsed: boolean;
   pathname: string;
 }) {
+  // Longest matching prefix wins so a parent-path entry (e.g. /org) doesn't
+  // stay active on a sibling's deeper route (/org/report, /org/config/*).
+  const active = nav
+    .filter((e) => {
+      const m = e.match ?? e.to;
+      return pathname === m || pathname.startsWith(m + "/");
+    })
+    .sort((a, b) => (b.match ?? b.to).length - (a.match ?? a.to).length)[0];
   return (
     <ul className="space-y-0.5">
       {nav.map((entry) => (
@@ -184,6 +201,7 @@ function NavGroup({
           entry={entry}
           collapsed={collapsed}
           pathname={pathname}
+          isOnRoute={entry === active}
         />
       ))}
     </ul>
@@ -194,18 +212,21 @@ function TopEntryItem({
   entry,
   collapsed,
   pathname,
+  isOnRoute,
 }: {
   entry: TopEntry;
   collapsed: boolean;
   pathname: string;
+  isOnRoute: boolean;
 }) {
   const { Icon, to, label, subnav } = entry;
-  const isOnRoute = pathname === to || pathname.startsWith(to + "/");
   // Active sub-item label (used in collapsed tooltip). Longest match wins so
   // a parent-path entry (e.g. /org) doesn't shadow deeper siblings.
-  const activeSub = subnav
-    ?.filter((s) => pathname.startsWith(s.to))
-    .sort((a, b) => b.to.length - a.to.length)[0];
+  const activeSub = isOnRoute
+    ? subnav
+        ?.filter((s) => pathname.startsWith(s.to))
+        .sort((a, b) => b.to.length - a.to.length)[0]
+    : undefined;
   const childActive = !!activeSub;
   const expandSubnav = !collapsed && isOnRoute && subnav && subnav.length > 0;
 
