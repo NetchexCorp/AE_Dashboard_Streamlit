@@ -96,3 +96,125 @@ export function getAnalysisHistory(
 export function listFields(): Promise<FieldRef[]> {
   return api<FieldRef[]>("/api/riaas/fields");
 }
+
+// ---- Chapter pages ----
+
+export interface ChapterSummary {
+  slug: string;
+  title: string;
+}
+
+export type AnalysisStatus = "ok" | "pending" | "error";
+
+export interface ChapterAnalysis {
+  analysis_id: string;
+  title: string;
+  viz: string;
+  grain: string;
+  description: string;
+  formula: string;
+  status: AnalysisStatus;
+  data?: Record<string, unknown>;
+  reason?: string;
+  error?: string;
+}
+
+export interface KeyFindings {
+  text: string;
+  updated_by: string;
+  updated_at: string;
+}
+
+export interface ChapterResponse {
+  slug: string;
+  chapter: string;
+  analyses: ChapterAnalysis[];
+  key_findings: KeyFindings;
+}
+
+export interface ChapterFilters {
+  period?: string;
+  motion?: string;
+  territory?: string;
+  seller_id?: string;
+}
+
+// Per-analysis "data" payload shapes (Chapter 1).
+
+export interface CrmCompleteData {
+  total_contacts: number;
+  untitled: number;
+  pct_untitled: number | null;
+  titled: number;
+  decision_makers: number;
+  pct_dm_of_titled: number | null;
+  note?: string;
+}
+
+export interface VelocityQuarter {
+  label: string;
+  deals: number;
+  deals_won: number;
+  win_rate: number | null;
+  acv: number | null;
+  cycle_days: number | null;
+  velocity: number | null;
+  efficiency: number | null;
+  bookings: number;
+}
+
+export interface RpsQuarter {
+  label: string;
+  bookings: number;
+  sellers: number;
+  rps: number | null;
+}
+
+export interface TerritoryMetrics {
+  name: string;
+  deals: number;
+  deals_won: number;
+  win_rate: number | null;
+  acv: number | null;
+  cycle_days: number | null;
+  velocity: number | null;
+  efficiency: number | null;
+  bookings: number;
+}
+
+export interface TerritoryEffData {
+  territories: TerritoryMetrics[];
+  gap: { top: string; bottom: string; ratio: number | null } | null;
+  deals_without_territory: number;
+}
+
+export function listChapters(): Promise<ChapterSummary[]> {
+  return api<ChapterSummary[]>("/api/riaas/chapters");
+}
+
+export function fetchChapter(
+  slug: string,
+  filters: ChapterFilters = {},
+): Promise<ChapterResponse> {
+  const qs = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters)) {
+    if (value) qs.set(key, value);
+  }
+  const suffix = qs.size > 0 ? `?${qs.toString()}` : "";
+  return api<ChapterResponse>(
+    `/api/riaas/chapters/${encodeURIComponent(slug)}${suffix}`,
+  );
+}
+
+export function saveKeyFindings(
+  slug: string,
+  text: string,
+): Promise<KeyFindings> {
+  return api<KeyFindings>(
+    `/api/riaas/chapters/${encodeURIComponent(slug)}/key-findings`,
+    {
+      method: "PUT",
+      body: JSON.stringify({ text }),
+    },
+  );
+}

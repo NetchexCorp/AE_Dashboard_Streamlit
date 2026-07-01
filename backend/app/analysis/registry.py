@@ -157,7 +157,13 @@ WHERE {motion_clause}
         description="Win rate by relationship-score band within each deal-size band. Scored cohort only (engagement score coverage is partial).",
         formula="WinRate per (score band × size band)",
         fields_required=["opp.engagement_score", "opp.amount", "opp.stage"],
-        template="", time_filter=True,
+        template="""
+SELECT Id, Amount, StageName, AI_Overall_Score__c
+FROM Opportunity
+WHERE {motion_clause} AND {closed_clause} AND {close_date_clause}
+  AND {territory_clause} AND {seller_clause}
+  AND AI_Overall_Score__c != null
+""", time_filter=True,
     ),
     _e(
         analysis_id="C2-SLIPPAGE-WR",
@@ -166,7 +172,14 @@ WHERE {motion_clause}
         description="Win rate and deal count by slippage duration bucket (0–60, 61–180, 181+ days of CloseDate pushes).",
         formula="Slippage = days CloseDate moved out (from field history); WinRate per bucket",
         fields_required=["opp.slippage", "opp.stage", "opp.amount"],
-        template="", time_filter=True,
+        template="""
+SELECT OpportunityId, OldValue, NewValue, CreatedDate,
+       Opportunity.StageName, Opportunity.Amount
+FROM OpportunityFieldHistory
+WHERE Field = 'CloseDate'
+  AND {opp_motion_clause} AND {opp_closed_clause} AND {opp_close_date_clause}
+  AND {opp_territory_clause} AND {opp_seller_clause}
+""", time_filter=True,
     ),
     _e(
         analysis_id="C2-QUAL-WR",
@@ -175,7 +188,13 @@ WHERE {motion_clause}
         description="Win rate by average MEDDPICC score bucket; deals scored ≥3 vs <3.",
         formula="WinRate per MEDDPICC-score bucket",
         fields_required=["opp.meddic_numeric", "opp.stage"],
-        template="", time_filter=True,
+        template="""
+SELECT Id, Amount, StageName, AI_MEDDIC_Summary__c
+FROM Opportunity
+WHERE {motion_clause} AND {closed_clause} AND {close_date_clause}
+  AND {territory_clause} AND {seller_clause}
+  AND AI_Overall_Score__c != null
+""", time_filter=True,
     ),
     _e(
         analysis_id="C2-MEDD-ELEMENTS",
@@ -184,7 +203,7 @@ WHERE {motion_clause}
         description="Per-element MEDDPICC averages for won vs lost deals.",
         formula="avg element score, Won vs Lost",
         fields_required=["opp.meddic_numeric", "opp.ai_metadata"],
-        template="", time_filter=True,
+        template="", time_filter=True, computed=True,
     ),
     _e(
         analysis_id="C2-EFF-DEALSIZE",
@@ -193,7 +212,13 @@ WHERE {motion_clause}
         description="Sales efficiency and deal count per deal-size band.",
         formula="Efficiency = (WinRate × ACV) ÷ SalesCycle per band",
         fields_required=["opp.amount", "opp.stage", "opp.close_date", "opp.created_date"],
-        template="", time_filter=True,
+        template="""
+SELECT Id, Amount, StageName, CloseDate, CreatedDate, OwnerId, Owner.Name,
+       Account.Industry, Account.EmployeeRange__c, Account.ICP_Industry_Group__c
+FROM Opportunity
+WHERE {motion_clause} AND {closed_clause} AND {close_date_clause}
+  AND {territory_clause} AND {seller_clause}
+""", time_filter=True,
     ),
     _e(
         analysis_id="C2-CYCLE-AGE-WR",
@@ -202,7 +227,7 @@ WHERE {motion_clause}
         description="Win rate by deal-age band (1–30 … 361+ days), per deal-size band.",
         formula="WinRate per (age band × size band)",
         fields_required=["opp.amount", "opp.stage", "opp.close_date", "opp.created_date"],
-        template="", time_filter=True,
+        template="", time_filter=True, computed=True,
     ),
     _e(
         analysis_id="C2-MEDIAN-CYCLE",
@@ -211,7 +236,7 @@ WHERE {motion_clause}
         description="Median days from creation to close for won vs lost deals, per deal-size band.",
         formula="median(CloseDate − CreatedDate), Won vs Lost per band",
         fields_required=["opp.amount", "opp.stage", "opp.close_date", "opp.created_date"],
-        template="", time_filter=True,
+        template="", time_filter=True, computed=True,
     ),
     _e(
         analysis_id="C2-EFF-INDUSTRY",
@@ -220,17 +245,17 @@ WHERE {motion_clause}
         description="Sales efficiency and deal count by account industry; volume share of the top-5 efficient industries.",
         formula="Efficiency per industry",
         fields_required=["opp.amount", "opp.stage", "opp.close_date", "acct.industry", "opp.created_date"],
-        template="", time_filter=True,
+        template="", time_filter=True, computed=True,
     ),
     _e(
         analysis_id="C2-EFF-ICP",
         chapter=CH_WINLOSS, title="How does sales efficiency vary across ICP attributes?",
         viz="bar", grain="icp_attr",
-        description="Sales efficiency and deal count per ICP attribute (employee range, ICP industry group, ICP segmentation).",
+        description="Sales efficiency and deal count per ICP attribute (employee range, ICP industry group).",
         formula="Efficiency per ICP attribute value",
         fields_required=["opp.amount", "opp.stage", "opp.close_date", "acct.employee_range",
-                         "acct.icp_industry_group", "acct.icp_segmentation", "opp.created_date"],
-        template="", time_filter=True,
+                         "acct.icp_industry_group", "opp.created_date"],
+        template="", time_filter=True, computed=True,
     ),
     _e(
         analysis_id="C2-MULTITHREAD-WR",
@@ -239,7 +264,13 @@ WHERE {motion_clause}
         description="Win rate by number of engaged stakeholders per deal; average stakeholders won vs lost.",
         formula="WinRate per stakeholder-count band (distinct OpportunityContactRole)",
         fields_required=["ocr.contact", "opp.stage", "opp.amount"],
-        template="", time_filter=True,
+        template="""
+SELECT OpportunityId, ContactId, Contact.Job_Title__c, Contact.AI_Overall_Score__c,
+       Opportunity.StageName, Opportunity.Amount
+FROM OpportunityContactRole
+WHERE {opp_motion_clause} AND {opp_closed_clause} AND {opp_close_date_clause}
+  AND {opp_territory_clause} AND {opp_seller_clause}
+""", time_filter=True,
     ),
     _e(
         analysis_id="C2-PERSONA-WON",
@@ -248,7 +279,7 @@ WHERE {motion_clause}
         description="Distribution of engaged personas (department × seniority from job title) in won deals; % with no title flagged.",
         formula="persona distribution over won-deal contact roles",
         fields_required=["ocr.contact", "contact.job_title", "opp.stage"],
-        template="", time_filter=True,
+        template="", time_filter=True, computed=True,
     ),
     _e(
         analysis_id="C2-PERSONA-IMPACT",
@@ -257,7 +288,7 @@ WHERE {motion_clause}
         description="Win-rate matrix by department × seniority vs the overall average.",
         formula="WinRate per persona cell vs overall",
         fields_required=["ocr.contact", "contact.job_title", "opp.stage"],
-        template="", time_filter=True,
+        template="", time_filter=True, computed=True,
     ),
 
     # ================= Chapter 3 — Pipeline Health =================

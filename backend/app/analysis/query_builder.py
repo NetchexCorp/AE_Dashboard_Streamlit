@@ -63,6 +63,41 @@ def _open_clause(_p: dict) -> str:
     return "IsClosed = false"
 
 
+# "Opportunity."-prefixed variants for child objects that filter through the
+# parent (OpportunityFieldHistory, OpportunityHistory, OpportunityContactRole).
+def _opp_motion_clause(p: dict) -> str:
+    return "Opportunity." + _motion_clause(p)
+
+
+def _opp_territory_clause(p: dict) -> str:
+    if p.get("territory"):
+        return (
+            "Opportunity.Account.Account_Territory__r.Name = "
+            f"'{soql_quote(p['territory'])}'"
+        )
+    return "Id != null"
+
+
+def _opp_seller_clause(p: dict) -> str:
+    if p.get("seller_id"):
+        return f"Opportunity.OwnerId = '{soql_quote(p['seller_id'])}'"
+    return "Id != null"
+
+
+def _opp_close_date_clause(p: dict) -> str:
+    return (
+        f"Opportunity.CloseDate >= {p['period_start']} "
+        f"AND Opportunity.CloseDate <= {p['period_end']}"
+    )
+
+
+def _opp_closed_clause(_p: dict) -> str:
+    return (
+        "Opportunity.IsClosed = true "
+        f"AND Opportunity.StageName IN ('{WON_STAGE}', '{LOST_STAGE}')"
+    )
+
+
 CLAUSE_BUILDERS = {
     "{motion_clause}": _motion_clause,
     "{territory_clause}": _territory_clause,
@@ -70,6 +105,11 @@ CLAUSE_BUILDERS = {
     "{close_date_clause}": _close_date_clause,
     "{closed_clause}": _closed_clause,
     "{open_clause}": _open_clause,
+    "{opp_motion_clause}": _opp_motion_clause,
+    "{opp_territory_clause}": _opp_territory_clause,
+    "{opp_seller_clause}": _opp_seller_clause,
+    "{opp_close_date_clause}": _opp_close_date_clause,
+    "{opp_closed_clause}": _opp_closed_clause,
 }
 
 

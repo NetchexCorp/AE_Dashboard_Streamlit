@@ -14,6 +14,7 @@ import { Logo } from "./Logo";
 import { UserMenu } from "./UserMenu";
 import { useMe } from "@/hooks/useMe";
 import { useUiStore } from "@/stores/uiStore";
+import { CHAPTERS } from "@/lib/chapters";
 import { SECTION_DEFS } from "@/lib/sections";
 import { cn } from "@/lib/cn";
 
@@ -58,6 +59,13 @@ const INDIVIDUAL_NAV: TopEntry[] = [
 // only when /api/me reports features.riaas; config entries are admin-only.
 const ORG_SUBNAV: Entry[] = [
   { to: "/org", label: "Overview" },
+  ...CHAPTERS.map((c) => ({
+    to: `/org/chapters/${c.slug}`,
+    label: c.navLabel,
+  })),
+];
+
+const ORG_CONFIG_SUBNAV: Entry[] = [
   { to: "/org/config/analyses", label: "Analysis Config" },
   { to: "/org/config/fields", label: "Field Dictionary" },
 ];
@@ -80,7 +88,7 @@ export function SideNav() {
       to: "/org",
       label: "Overview",
       Icon: Building2,
-      subnav: isAdmin ? ORG_SUBNAV : undefined,
+      subnav: isAdmin ? [...ORG_SUBNAV, ...ORG_CONFIG_SUBNAV] : ORG_SUBNAV,
     },
   ];
 

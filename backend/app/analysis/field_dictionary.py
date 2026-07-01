@@ -69,7 +69,8 @@ _FIELDS = [
     FieldRef("acct.industry", "Account", "Industry", "B", True),
     FieldRef("acct.employee_range", "Account", "EmployeeRange__c", "B", True, "ICP attribute: employee size"),
     FieldRef("acct.icp_industry_group", "Account", "ICP_Industry_Group__c", "B", True, "ICP attribute"),
-    FieldRef("acct.icp_segmentation", "Account", "ICP_Segmentation__c", "B", True, "ICP attribute"),
+    FieldRef("acct.icp_segmentation", "Account", "(not on Account)", "B", False,
+             "ICP_Segmentation__c exists on Contact/Lead only — no account-grain equivalent"),
     FieldRef("acct.is_icp", "Account", "Account_is_ICP__c", "B", True,
              "FORMULA Yes/No — filterable, cannot GROUP BY"),
     FieldRef("acct.territory", "Account", "Account_Territory__r.Name", "B", True,
@@ -96,9 +97,11 @@ _FIELDS = [
     FieldRef("contact.relationship_score", "Contact", "AI_Overall_Score__c", "C", True,
              "contact-grain relationship score, 84% coverage; powers multi-threading ≥30"),
 
+    FieldRef("opp.meddic_numeric", "Opportunity", "AI_MEDDIC_Summary__c (parsed)", "C", True,
+             "summary header carries 'MEDDIC COVERAGE: n/6' + per-element ✅/❌ — parsed "
+             "server-side; only AI-scored deals have it (small cohort, state coverage)"),
+
     # ---- unconfirmed: no org field found ----
-    FieldRef("opp.meddic_numeric", "Opportunity", "(none found)", "C", False,
-             "numeric MEDDPICC total/element scores — parse AI_Metadata__c or stay blocked"),
     FieldRef("user.skill_scores", "User", "(none found)", "C", False,
              "Gong CI skill fields (Discovery_Skill__c etc.) do not exist"),
     FieldRef("forecast.snapshots", "(none)", "(none found)", "B", False,

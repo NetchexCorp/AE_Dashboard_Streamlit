@@ -128,17 +128,72 @@ def _territory_efficiency(rows: list[dict]) -> dict:
     }
 
 
-TRANSFORMS: dict[str, Callable[[list[dict]], dict]] = {
+from app.services.riaas.winloss_service import TRANSFORMS as C2_TRANSFORMS  # noqa: E402
+
+# fn(rows) or (fn(rows, deps), [dependency analysis ids])
+TRANSFORMS: dict[str, Callable | tuple[Callable, list[str]]] = {
     "C1-CRM-COMPLETE": _crm_complete,
     "C1-VELOCITY-NB": _velocity_trend,
     "C1-VELOCITY-EXP": _velocity_trend,
     "C1-RPS-NB": _rps_trend,
     "C1-RPS-EXP": _rps_trend,
     "C1-TERR-EFF-GAP": _territory_efficiency,
+    **C2_TRANSFORMS,
 }
 
 # Quarterly-trend analyses pin their window to the last TREND_QUARTERS quarters.
 TREND_ANALYSES = {"C1-VELOCITY-NB", "C1-VELOCITY-EXP", "C1-RPS-NB", "C1-RPS-EXP"}
+
+
+def _shape_analysis(entry, results: dict[str, dict]) -> dict:
+    res = results[entry.analysis_id]
+    item = {
+        "analysis_id": entry.analysis_id,
+        "title": entry.title,
+        "viz": entry.viz,
+        "grain": entry.grain,
+        "description": entry.description,
+        "formula": entry.formula,
+        "status": res["status"],
+    }
+    spec = TRANSFORMS.get(entry.analysis_id)
+    if spec is None:
+        if res["status"] in ("ok", "computed"):
+            item["status"] = "pending"
+            item["reason"] = "analysis not yet implemented"
+        elif res["status"] == "pending":
+            item["reason"] = res.get("reason", "")
+        elif res["status"] == "error":
+            item["error"] = res.get("error", "")
+        return item
+
+    transform, dep_ids = spec if isinstance(spec, tuple) else (spec, [])
+    if res["status"] == "pending":
+        item["reason"] = res.get("reason", "")
+        return item
+    if res["status"] == "error":
+        item["error"] = res.get("error", "")
+        return item
+
+    deps: dict[str, list[dict]] = {}
+    for dep_id in dep_ids:
+        dep_res = results.get(dep_id)
+        if dep_res is None or dep_res["status"] != "ok":
+            item["status"] = "error" if (dep_res and dep_res["status"] == "error") else "pending"
+            item["reason" if item["status"] == "pending" else "error"] = (
+                f"depends on {dep_id} which is {dep_res['status'] if dep_res else 'missing'}"
+            )
+            return item
+        deps[dep_id] = dep_res["rows"]
+
+    try:
+        item["data"] = transform(res["rows"], deps) if dep_ids else transform(res["rows"])
+        item["status"] = "ok"
+    except Exception as exc:  # transform bugs stay isolated too
+        log.exception("%s transform failed", entry.analysis_id)
+        item["status"] = "error"
+        item["error"] = f"transform failed: {exc}"
+    return item
 
 
 def run_chapter(
@@ -173,40 +228,9 @@ def run_chapter(
     if trend_entries:
         results.update(run_analyses(sf, trend_entries, trend_params, overrides))
 
-    analyses_out = []
-    for entry in entries:
-        res = results[entry.analysis_id]
-        item = {
-            "analysis_id": entry.analysis_id,
-            "title": entry.title,
-            "viz": entry.viz,
-            "grain": entry.grain,
-            "description": entry.description,
-            "formula": entry.formula,
-            "status": res["status"],
-        }
-        if res["status"] == "ok":
-            transform = TRANSFORMS.get(entry.analysis_id)
-            if transform is None:
-                item["status"] = "pending"
-                item["reason"] = "analysis not yet implemented"
-            else:
-                try:
-                    item["data"] = transform(res["rows"])
-                except Exception as exc:  # transform bugs stay isolated too
-                    log.exception("%s transform failed", entry.analysis_id)
-                    item["status"] = "error"
-                    item["error"] = f"transform failed: {exc}"
-        elif res["status"] == "computed":
-            # Derived analyses get real payloads once their chapter service
-            # implements them (Phase 4); until then they render as pending.
-            item["status"] = "pending"
-            item["reason"] = "derived analysis not yet implemented"
-        elif res["status"] == "pending":
-            item["reason"] = res.get("reason", "")
-        elif res["status"] == "error":
-            item["error"] = res.get("error", "")
-        analyses_out.append(item)
+    analyses_out = [
+        _shape_analysis(entry, results) for entry in entries
+    ]
 
     return {
         "slug": slug,
