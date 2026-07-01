@@ -83,7 +83,8 @@ def _rps_trend(rows: list[dict]) -> dict:
         qrows = grouped.get(q["label"], [])
         won = [r for r in qrows if r.get("StageName") == WON]
         bookings = sum(r.get("Amount") or 0 for r in won)
-        sellers = {r.get("OwnerId") for r in won if r.get("OwnerId")}
+        # Active seller = anyone who closed a deal (won or lost) this quarter.
+        sellers = {r.get("OwnerId") for r in qrows if r.get("OwnerId")}
         quarters.append(
             {
                 "label": q["label"],

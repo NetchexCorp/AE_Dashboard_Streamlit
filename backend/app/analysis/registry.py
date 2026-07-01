@@ -176,7 +176,7 @@ WHERE {motion_clause} AND {closed_clause} AND {close_date_clause}
     _e(
         analysis_id="C2-SLIPPAGE-WR",
         chapter=CH_WINLOSS, title="How does slippage impact win rate?",
-        viz="combo", grain="deal_size_band",
+        viz="combo", grain="slippage_bucket",
         description="Win rate and deal count by slippage duration bucket (0–60, 61–180, 181+ days of CloseDate pushes).",
         formula="Slippage = days CloseDate moved out (from field history); WinRate per bucket",
         fields_required=["opp.slippage", "opp.stage", "opp.amount"],
@@ -192,7 +192,7 @@ WHERE Field = 'CloseDate'
     _e(
         analysis_id="C2-QUAL-WR",
         chapter=CH_WINLOSS, title="How does qualification (MEDDPICC) impact win rate?",
-        viz="bar", grain="deal_size_band",
+        viz="bar", grain="meddpicc_bucket",
         description="Win rate by average MEDDPICC score bucket; deals scored ≥3 vs <3.",
         formula="WinRate per MEDDPICC-score bucket",
         fields_required=["opp.meddic_numeric", "opp.stage"],
@@ -207,7 +207,7 @@ WHERE {motion_clause} AND {closed_clause} AND {close_date_clause}
     _e(
         analysis_id="C2-MEDD-ELEMENTS",
         chapter=CH_WINLOSS, title="Average MEDDPICC element scores — won vs lost",
-        viz="grouped_bar", grain="stage",
+        viz="grouped_bar", grain="element",
         description="Per-element MEDDPICC averages for won vs lost deals.",
         formula="avg element score, Won vs Lost",
         fields_required=["opp.meddic_numeric", "opp.ai_metadata"],
@@ -268,7 +268,7 @@ WHERE {motion_clause} AND {closed_clause} AND {close_date_clause}
     _e(
         analysis_id="C2-MULTITHREAD-WR",
         chapter=CH_WINLOSS, title="How does multi-threading impact win rate?",
-        viz="combo", grain="deal_size_band",
+        viz="combo", grain="stakeholder_band",
         description="Win rate by number of engaged stakeholders per deal; average stakeholders won vs lost.",
         formula="WinRate per stakeholder-count band (distinct OpportunityContactRole)",
         fields_required=["ocr.contact", "opp.stage", "opp.amount"],
@@ -540,7 +540,7 @@ WHERE {opp_motion_clause} AND {opp_closed_clause} AND {opp_close_date_clause}
         chapter=CH_PROCESS, title="Is the sales process being followed?",
         viz="bar", grain="stage",
         description="% of deals that skip each stage.",
-        formula="deals missing a stage in history ÷ closed deals",
+        formula="won deals missing the stage in history ÷ won deals",
         fields_required=["opp.stage_history", "opp.stage"],
         template="", time_filter=True, computed=True,
     ),
@@ -548,7 +548,7 @@ WHERE {opp_motion_clause} AND {opp_closed_clause} AND {opp_close_date_clause}
         analysis_id="C5-MEDD-BY-STAGE",
         chapter=CH_PROCESS, title="MEDDPICC benchmark by stage",
         viz="grouped_bar", grain="stage",
-        description="Average MEDDPICC score by stage, top vs average territory.",
+        description="Average MEDDPICC coverage by stage (AI-scored open deals; cohort too small for a per-territory split).",
         formula="avg MEDDPICC per stage",
         fields_required=["opp.meddic_numeric", "opp.stage"],
         template="""
@@ -563,9 +563,9 @@ WHERE {motion_clause} AND {open_clause}
         analysis_id="C5-STAGE-CRITERIA",
         chapter=CH_PROCESS, title="What do winning deals look like at each stage?",
         viz="table", grain="stage",
-        description="Entry/exit signal benchmarks per stage derived from won-deal history (duration, activity, threading).",
+        description="Won-deal benchmarks per stage: how often winners record the stage and median time spent in it.",
         formula="won-deal per-stage benchmarks",
-        fields_required=["opp.stage_history", "opp.stage", "ocr.contact"],
+        fields_required=["opp.stage_history", "opp.stage"],
         template="", time_filter=True, computed=True,
     ),
 ]

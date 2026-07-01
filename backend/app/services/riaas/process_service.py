@@ -114,12 +114,16 @@ def _funnel_stats(deals: dict[str, dict]) -> list[dict]:
                 converted.append(d)
                 if exit_ts:
                     durations.append(max((exit_ts - entry).days, 0))
+        conversion = round(len(converted) / len(reached), 4) if reached else None
         stages_out.append(
             {
                 "stage": stage,
                 "reached": len(reached),
                 "converted": len(converted),
-                "conversion_rate": round(len(converted) / len(reached), 4) if reached else None,
+                "conversion_rate": conversion,
+                # %Slip = share of deals that entered the stage and dropped
+                # there (never advanced, didn't win). Convert + slip = 100%.
+                "slip_rate": round(1 - conversion, 4) if conversion is not None else None,
                 "median_days_in_stage": median(durations) if durations else None,
             }
         )

@@ -307,7 +307,12 @@ def classify_persona(title: str | None) -> tuple[str, str]:
 
 
 def _persona_won(_rows, deps) -> dict:
-    roles = [r for r in deps["C2-MULTITHREAD-WR"] if r.get("Opportunity.StageName") == WON]
+    # "Engaged" persona per the global definition: relationship score ≥ 30.
+    roles = [
+        r for r in deps["C2-MULTITHREAD-WR"]
+        if r.get("Opportunity.StageName") == WON
+        and (r.get("Contact.AI_Overall_Score__c") or 0) >= ENGAGED_SCORE_MIN
+    ]
     cells: dict[tuple[str, str], int] = defaultdict(int)
     untitled = 0
     for r in roles:

@@ -2,6 +2,24 @@
 
 One lesson per entry, newest first. Update entries instead of duplicating.
 
+## Accepted spec deviations (verifier-audited 2026-07-02)
+
+- **RPS denominator** = sellers with any closed deal in the quarter (won or lost).
+- **Slippage buckets** split the deck's 0–60 into "0" (never slipped) and "1–60";
+  the never-slipped baseline is the most useful bar on the chart.
+- **Funnel %Slip** = 1 − conversion at each stage (dropped there); C5-ADHERENCE
+  divides by won deals (losses legitimately die mid-funnel).
+- **No territory split** on C2-MEDD-ELEMENTS / C5-MEDD-BY-STAGE: the AI-scored
+  cohort (~140 deals) gives single-digit deals per territory — statistically
+  meaningless until score coverage grows. Descriptions say so.
+- **C1-CRM-COMPLETE** drops the deck's "% contacts/leads missing from CRM"
+  (unmeasurable from CRM alone); measures the no-title and decision-maker KPIs.
+- **MEDDIC cohort proxy**: templates filter `AI_Overall_Score__c != null` because
+  the summary textarea isn't SOQL-filterable; a deal with a summary but no score
+  would be excluded (none observed).
+- **C2-PERSONA-WON** counts only engaged roles (score ≥ 30) per the global
+  multi-threading definition; C2-PERSONA-IMPACT keeps all roles (impact measure).
+
 ## Quota (ForecastingQuota) — semi-join is invisible to the API user
 
 The AE-dashboard pattern `ForecastingTypeId IN (SELECT Id FROM ForecastingType

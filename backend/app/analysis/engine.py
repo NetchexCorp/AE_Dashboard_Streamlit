@@ -74,7 +74,16 @@ def run_analysis(
             "error": _non_retryable_failures[entry.analysis_id], "rows": [],
         }
 
-    soql = build_query(entry, params, template_override=template)
+    # A malformed override template ({typo} → KeyError) must fail only this
+    # analysis, never the whole chapter request.
+    try:
+        soql = build_query(entry, params, template_override=template)
+    except (KeyError, IndexError, ValueError) as exc:
+        err = f"template error: {exc!r}"
+        _non_retryable_failures[entry.analysis_id] = err
+        log.error("%s FAILED (bad template): %s", entry.analysis_id, exc)
+        return {"analysis_id": entry.analysis_id, "status": "error", "error": err, "rows": []}
+
     t0 = time.time()
     try:
         result = sf.query_all(soql)

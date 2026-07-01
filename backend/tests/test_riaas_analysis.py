@@ -171,6 +171,19 @@ def test_store_local_fallback_roundtrip(tmp_path, monkeypatch) -> None:
     assert store.load_overrides() == {"C1-VELOCITY-NB": "SELECT Id FROM Opportunity"}
 
 
+def test_engine_isolates_bad_override_template() -> None:
+    # A saved override with a stray {placeholder} must fail only its own
+    # analysis, never raise out of run_analyses (which would 500 the chapter).
+    clear_failures()
+    good = _entry("SELECT COUNT(Id) FROM Opportunity WHERE {motion_clause}", analysis_id="G-2")
+    bad = _entry("SELECT Id FROM Opportunity WHERE {no_such_clause}", analysis_id="B-3")
+    results = run_analyses(FakeSf(), [good, bad], build_filter_params(period="ytd"))
+    assert results["G-2"]["status"] == "ok"
+    assert results["B-3"]["status"] == "error"
+    assert "template error" in results["B-3"]["error"]
+    clear_failures()
+
+
 def test_engine_uses_override_template() -> None:
     clear_failures()
     entry = _entry("", analysis_id="O-1")  # no default template
