@@ -57,3 +57,4 @@ frontend/.vite/
 
 # Local dev fallback for SOQL overrides (used when AZURE_STORAGE_CONNECTION_STRING is unset)
 soql_overrides.json
+.claude/

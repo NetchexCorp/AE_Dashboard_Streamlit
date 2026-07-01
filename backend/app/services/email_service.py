@@ -25,6 +25,13 @@ class EmailService:
         text: str | None = None,
     ) -> str:
         s = get_settings()
+        if s.sendgrid_recipient_override:
+            logger.info(
+                "SENDGRID_RECIPIENT_OVERRIDE active — rerouting %d recipient(s) to %s",
+                len(to),
+                s.sendgrid_recipient_override,
+            )
+            to = [s.sendgrid_recipient_override]
         if not s.sendgrid_api_key:
             logger.warning(
                 "SENDGRID_API_KEY not set — would have sent to %s subject=%s",
@@ -47,6 +54,12 @@ class EmailService:
             html_content=html,
             plain_text_content=text,
         )
+        if s.sendgrid_sandbox_mode:
+            from sendgrid.helpers.mail import MailSettings, SandBoxMode
+
+            settings_obj = MailSettings()
+            settings_obj.sandbox_mode = SandBoxMode(True)
+            message.mail_settings = settings_obj
         client = SendGridAPIClient(s.sendgrid_api_key)
         response = client.send(message)
         msg_id = response.headers.get("X-Message-Id", "") if hasattr(response, "headers") else ""

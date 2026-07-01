@@ -23,6 +23,7 @@ from app.routers import (
 )
 from app.routers.riaas import analyses_admin as riaas_analyses
 from app.routers.riaas import chapters as riaas_chapters
+from app.routers.riaas import report as riaas_report
 
 
 @asynccontextmanager
@@ -35,8 +36,12 @@ async def lifespan(app: FastAPI):
 
     ensure_tables()
     bootstrap_admins(get_settings().bootstrap_admin_list)
-    start_scheduler()
-    sync_all_schedules()
+    if get_settings().scheduler_enabled:
+        from app.schedulers_registration import sync_riaas_schedules
+
+        start_scheduler()
+        sync_all_schedules()
+        sync_riaas_schedules()
     try:
         yield
     finally:
@@ -74,6 +79,7 @@ def create_app() -> FastAPI:
     app.include_router(schedules.router)
     app.include_router(riaas_chapters.router)
     app.include_router(riaas_analyses.router)
+    app.include_router(riaas_report.router)
 
     return app
 

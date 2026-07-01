@@ -1,3 +1,3 @@
-from app.routers.riaas import analyses_admin, chapters
+from app.routers.riaas import analyses_admin, chapters, report
 
-__all__ = ["analyses_admin", "chapters"]
+__all__ = ["analyses_admin", "chapters", "report"]

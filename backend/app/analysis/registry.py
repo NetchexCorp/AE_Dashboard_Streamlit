@@ -46,6 +46,14 @@ CHAPTER_SLUGS = {
     "gtm-process": CH_PROCESS,
 }
 
+CHAPTER_TITLES = {
+    "gtm-overview": "GTM Efficiency Overview",
+    "win-loss": "Win/Loss & Benchmark",
+    "pipeline-health": "Pipeline Health Assessment",
+    "coach": "Coach (People Insights)",
+    "gtm-process": "GTM Process Optimisation",
+}
+
 
 def _e(**kw) -> AnalysisEntry:
     entry = AnalysisEntry(**kw)

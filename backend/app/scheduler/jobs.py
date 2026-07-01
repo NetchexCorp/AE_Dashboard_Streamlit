@@ -88,6 +88,67 @@ def run_scheduled_report(schedule_id: str) -> str:
     return msg_id
 
 
+def riaas_render_and_send(
+    *,
+    recipients: list[str],
+    subject: str,
+    filters: dict,
+) -> str:
+    """Render the Revenue Insights Report (all five chapters) and email it."""
+    from app.services.email_service import get_email_service
+    from app.services.riaas.report_renderer import render_revenue_insights_report
+    from app.services.salesforce_client import get_sf_client
+
+    if not recipients:
+        raise ValueError("recipients is empty")
+    html = render_revenue_insights_report(
+        get_sf_client(), subject=subject, filters=filters or {}
+    )
+    return get_email_service().send_html(to=recipients, subject=subject, html=html)
+
+
+def run_riaas_scheduled_report(schedule_id: str) -> str:
+    """Execute one scheduled Revenue Insights Report (RiSchedules row)."""
+    from app.services.audit_service import get_audit_service
+    from app.services.riaas.riaas_schedule_service import get_ri_schedule_service
+
+    schedules = get_ri_schedule_service()
+    schedule = schedules.get(schedule_id)
+    if schedule is None:
+        logger.warning("riaas job for missing schedule %s", schedule_id)
+        return ""
+    if not schedule.is_active:
+        logger.info("riaas schedule %s inactive — skipping", schedule_id)
+        return ""
+
+    try:
+        msg_id = riaas_render_and_send(
+            recipients=schedule.recipients,
+            subject=schedule.subject,
+            filters=schedule.filters or {},
+        )
+    except Exception as exc:
+        schedules.record_run(schedule_id, ok=False, message=str(exc))
+        get_audit_service().write(
+            actor="scheduler",
+            entity="riaas",
+            action="report_run_failed",
+            target=schedule_id,
+            details={"error": str(exc)},
+        )
+        raise
+
+    schedules.record_run(schedule_id, ok=True, message=msg_id)
+    get_audit_service().write(
+        actor="scheduler",
+        entity="riaas",
+        action="report_run",
+        target=schedule_id,
+        details={"message_id": msg_id, "recipients": len(schedule.recipients)},
+    )
+    return msg_id
+
+
 def _parse_date(v) -> date | None:
     if not v:
         return None

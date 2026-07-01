@@ -73,6 +73,18 @@ class Settings(BaseSettings):
     scheduler_tz: str = Field(
         default="America/Chicago", validation_alias="SCHEDULER_TZ"
     )
+    # Kill switch for all cron jobs — set false on non-promoted revisions so a
+    # 0%-traffic deploy can never fire scheduled sends.
+    scheduler_enabled: bool = Field(default=True, validation_alias="SCHEDULER_ENABLED")
+
+    # SendGrid safety toggles for pre-promotion revisions: sandbox mode
+    # validates without delivering; a recipient override reroutes every send.
+    sendgrid_sandbox_mode: bool = Field(
+        default=False, validation_alias="SENDGRID_SANDBOX_MODE"
+    )
+    sendgrid_recipient_override: str = Field(
+        default="", validation_alias="SENDGRID_RECIPIENT_OVERRIDE"
+    )
 
     # CORS / internal
     ui_origin: str = Field(default="http://localhost:5173", validation_alias="UI_ORIGIN")
