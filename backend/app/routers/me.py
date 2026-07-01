@@ -3,8 +3,8 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 
 from app.config import Settings, get_settings
-from app.deps import get_current_user
-from app.schemas.common import CurrentUser, MeFlags, MeResponse
+from app.deps import get_current_user, riaas_enabled
+from app.schemas.common import CurrentUser, MeFeatures, MeFlags, MeResponse
 
 router = APIRouter(prefix="/api", tags=["me"])
 
@@ -24,4 +24,11 @@ def me(
         ),
         scheduler_tz=settings.scheduler_tz,
     )
-    return MeResponse(email=user.email, role=user.role, source=user.source, flags=flags)
+    features = MeFeatures(riaas=riaas_enabled(user, settings))
+    return MeResponse(
+        email=user.email,
+        role=user.role,
+        source=user.source,
+        flags=flags,
+        features=features,
+    )

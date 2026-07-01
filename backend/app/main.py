@@ -21,6 +21,7 @@ from app.routers import (
     soql,
     users,
 )
+from app.routers.riaas import chapters as riaas_chapters
 
 
 @asynccontextmanager
@@ -70,6 +71,7 @@ def create_app() -> FastAPI:
     app.include_router(users.router)
     app.include_router(audit.router)
     app.include_router(schedules.router)
+    app.include_router(riaas_chapters.router)
 
     return app
 

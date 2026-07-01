@@ -10,6 +10,9 @@ export interface MeResponse {
     soql_writes_enabled: boolean;
     scheduler_tz: string;
   };
+  features: {
+    riaas: boolean;
+  };
 }
 
 export function fetchMe(): Promise<MeResponse> {

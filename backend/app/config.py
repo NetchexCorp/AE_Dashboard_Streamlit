@@ -24,6 +24,13 @@ class Settings(BaseSettings):
     # Bootstrap admins (comma-separated) seeded into users table on startup
     bootstrap_admin_emails: str = Field(default="", validation_alias="BOOTSTRAP_ADMIN_EMAILS")
 
+    # RIaaS / Organization Performance feature flag — comma-separated email
+    # allowlist. Users not on the list get 404s from every RIaaS route and
+    # never see the nav group.
+    feature_riaas_allowed_emails: str = Field(
+        default="", validation_alias="FEATURE_RIAAS_ALLOWED_EMAILS"
+    )
+
     # Salesforce (client-credentials). Accepts both SF_* and SALESFORCE_*
     # env var names.
     sf_client_id: str = Field(
@@ -74,6 +81,11 @@ class Settings(BaseSettings):
     @property
     def bootstrap_admin_list(self) -> list[str]:
         raw = self.bootstrap_admin_emails or ""
+        return [e.strip().lower() for e in raw.split(",") if e.strip()]
+
+    @property
+    def riaas_allowed_list(self) -> list[str]:
+        raw = self.feature_riaas_allowed_emails or ""
         return [e.strip().lower() for e in raw.split(",") if e.strip()]
 
 

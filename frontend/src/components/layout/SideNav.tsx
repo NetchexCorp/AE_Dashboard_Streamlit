@@ -2,6 +2,7 @@ import * as Tooltip from "@radix-ui/react-tooltip";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Activity,
+  Building2,
   ChevronLeft,
   ChevronRight,
   LayoutDashboard,
@@ -11,6 +12,7 @@ import {
 } from "lucide-react";
 import { Logo } from "./Logo";
 import { UserMenu } from "./UserMenu";
+import { useMe } from "@/hooks/useMe";
 import { useUiStore } from "@/stores/uiStore";
 import { SECTION_DEFS } from "@/lib/sections";
 import { cn } from "@/lib/cn";
@@ -41,8 +43,8 @@ const CONFIG_SUBNAV: Entry[] = [
   { to: "/config/roster", label: "AE Roster" },
 ];
 
-// "Operations" group — what users do day-to-day.
-const PRIMARY_NAV: TopEntry[] = [
+// "Individual Performance" group — the per-AE dashboard users see day-to-day.
+const INDIVIDUAL_NAV: TopEntry[] = [
   {
     to: "/dashboard",
     label: "Dashboard",
@@ -50,6 +52,12 @@ const PRIMARY_NAV: TopEntry[] = [
     subnav: DASHBOARD_SUBNAV,
   },
   { to: "/schedules", label: "Reports", Icon: Mail },
+];
+
+// "Organization Performance" group — RIaaS revenue intelligence. Rendered
+// only when /api/me reports features.riaas.
+const ORG_NAV: TopEntry[] = [
+  { to: "/org", label: "Overview", Icon: Building2 },
 ];
 
 // "Governance" group — admin / audit. Visually separated below.
@@ -62,6 +70,8 @@ export function SideNav() {
   const { location } = useRouterState();
   const collapsed = useUiStore((s) => s.sidebarCollapsed);
   const toggle = useUiStore((s) => s.toggleSidebar);
+  const me = useMe();
+  const showOrg = me.data?.features.riaas === true;
 
   return (
     <aside
@@ -83,7 +93,15 @@ export function SideNav() {
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-2 py-3">
-        <NavGroup nav={PRIMARY_NAV} collapsed={collapsed} pathname={location.pathname} />
+        <GroupLabel collapsed={collapsed}>Individual Performance</GroupLabel>
+        <NavGroup nav={INDIVIDUAL_NAV} collapsed={collapsed} pathname={location.pathname} />
+        {showOrg && (
+          <>
+            <div className="my-2 mx-1 border-t border-border/60" />
+            <GroupLabel collapsed={collapsed}>Organization Performance</GroupLabel>
+            <NavGroup nav={ORG_NAV} collapsed={collapsed} pathname={location.pathname} />
+          </>
+        )}
         <div className="my-2 mx-1 border-t border-border/60" />
         <NavGroup nav={ADMIN_NAV} collapsed={collapsed} pathname={location.pathname} />
       </nav>
@@ -111,6 +129,21 @@ export function SideNav() {
         </button>
       </div>
     </aside>
+  );
+}
+
+function GroupLabel({
+  collapsed,
+  children,
+}: {
+  collapsed: boolean;
+  children: string;
+}) {
+  if (collapsed) return null;
+  return (
+    <div className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+      {children}
+    </div>
   );
 }
 

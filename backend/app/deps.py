@@ -40,3 +40,32 @@ def require_admin(user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
     if user.role != "admin":
         raise HTTPException(status_code=403, detail="admin required")
     return user
+
+
+def riaas_enabled(user: CurrentUser, settings: Settings) -> bool:
+    if settings.env == "dev":
+        return True
+    return user.email.lower() in settings.riaas_allowed_list
+
+
+# Process-lifetime dedup for the first-access audit event.
+_riaas_access_logged: set[str] = set()
+
+
+def require_riaas_access(
+    user: CurrentUser = Depends(get_current_user),
+    settings: Settings = Depends(get_settings),
+) -> CurrentUser:
+    # 404, not 403: the Organization Performance surface must be invisible
+    # to non-flagged users, not visibly forbidden.
+    if not riaas_enabled(user, settings):
+        raise HTTPException(status_code=404, detail="not found")
+
+    if user.email not in _riaas_access_logged:
+        _riaas_access_logged.add(user.email)
+        from app.services.audit_service import get_audit_service
+
+        get_audit_service().write(
+            actor=user.email, entity="riaas", action="access_granted"
+        )
+    return user

@@ -20,8 +20,13 @@ class MeFlags(BaseModel):
     scheduler_tz: str = "America/Chicago"
 
 
+class MeFeatures(BaseModel):
+    riaas: bool = False
+
+
 class MeResponse(BaseModel):
     email: str
     role: Role
     source: Literal["dev", "entra"]
     flags: MeFlags
+    features: MeFeatures = MeFeatures()

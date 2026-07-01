@@ -67,6 +67,15 @@ const dashboardSectionRoute = createRoute({
   component: DashboardSectionRoute,
 });
 
+const orgPerformanceRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/org",
+}).lazy(() =>
+  import("@/pages/org-performance/OrgPerformanceRoute.lazy").then(
+    (m) => m.Route,
+  ),
+);
+
 const schedulesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/schedules",
@@ -120,6 +129,7 @@ const routeTree = rootRoute.addChildren([
     dashboardChartsRoute,
     dashboardSectionRoute,
   ]),
+  orgPerformanceRoute,
   schedulesRoute,
   configRoute.addChildren([
     configIndexRoute,
