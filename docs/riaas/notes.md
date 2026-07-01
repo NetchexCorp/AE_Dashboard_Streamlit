@@ -2,6 +2,44 @@
 
 One lesson per entry, newest first. Update entries instead of duplicating.
 
+## Org schema truth (confirmed live 2026-07-02, org 00DA0000000JfyFMAS)
+
+Full describes cached in scratchpad `org/*.json`. What differs from the spec's guesses:
+
+- **Fiscal calendar = calendar year** (`FiscalYearStartMonth=1`). FY26 = CY2026.
+- **Motion**: `RecordType.Name` is the groupable motion driver — New Business =
+  `'Net New'`, Expansion = `'Cross-sell','Upsell'`. `Revenue_Type__c` exists but is a
+  **formula field → cannot GROUP BY or filter server-side**. Same for
+  `Account_is_ICP__c` (values Yes/No, ~5% Yes).
+- **Territory**: `Opportunity.Territory2Id` exists but is null everywhere. The real
+  territory grain is `Account.Account_Territory__r.Name` (names prefixed `OLD - ` are
+  legacy; a 2026 restructure flag `X2026_Territory_Restructure__c` exists). Team/seller
+  rollup via `Owner.UserRole.Name` / `Owner.Manager`.
+- **Days in stage**: standard `Opportunity.LastStageChangeInDays` (int) +
+  `LastStageChangeDate` — no OpportunityHistory derivation needed for C3-RISK-STALLED.
+- **ICP scores** live on **Account** as `AI_Overall_Score__c` / `AI_Fit_Score__c` /
+  `AI_Intent_Score__c` (percent), NOT `ICP_*__c`. Coverage 599k/636k accounts.
+  `EmployeeRange__c` + `ICP_Industry_Group__c` + `ICP_Segmentation__c` are the ICP
+  attribute fields (no Business_Model/Market_Focus).
+- **Contact-grain relationship score**: `Contact.AI_Overall_Score__c` (510k/607k
+  populated) → multi-threading "score ≥ 30" is buildable.
+- **Deal engagement scores sparse**: `Opportunity.AI_Overall_Score__c` /
+  `AI_Momentum_Score__c` populated on only **144 of 834 open opps** — analyses work but
+  must state coverage; benchmark from the scored cohort only.
+- **Textarea fields are not filterable**: `AI_MEDDIC_Summary__c` / `AI_Metadata__c` in a
+  WHERE clause → MALFORMED_QUERY. MEDDIC adoption (% with note) must SELECT the field
+  and count non-null in the service layer (pandas), never in SOQL.
+- **New Business stage funnel (active)**: Discovery → Business Validation →
+  Commitment & Negotiation → Closed/Won | Closed/Lost. Mid-stage open counts are tiny
+  (~6/3/6); funnel conversion needs OpportunityHistory over closed cohorts.
+- **No slippage field** (`Slipped_Days__c`/`Days_In_Stage__c` don't exist) → slippage =
+  CloseDate pushes from `OpportunityFieldHistory` (Field='CloseDate').
+- **No CI skill fields on User** (Discovery_Skill__c etc.) → C4 skill analyses stay
+  blocked. `User.Months_On_Quota__c`/`Weeks_onQuota__c` exist for seller tenure.
+- Forecast: `ForecastCategory`(picklist) + `Management_Forecast__c` (Pipeline/Best
+  Case/Commit/Closed Won) + `Forecast_Amount__c`. Week-2/week-4 snapshot accuracy needs
+  history (OpportunityFieldHistory on ForecastCategory) or stays blocked.
+
 ## Repo/branch reality differs from spec
 
 The spec names branch `overhaul/v2`; that branch does not exist. `main` *is* the

@@ -3,9 +3,18 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timezone
 
-from app.storage.tables import ALL_TABLES, TABLE_USERS, get_service, get_table_client
+from app.storage.tables import (
+    ALL_TABLES,
+    RIAAS_TABLES,
+    TABLE_USERS,
+    get_service,
+    get_table_client,
+)
 
 logger = logging.getLogger(__name__)
+
+# RIaaS tables must stay namespaced away from the AE dashboard's tables.
+assert all(t.startswith("Ri") for t in RIAAS_TABLES), "RIaaS tables must be Ri-prefixed"
 
 
 def ensure_tables() -> list[str]:

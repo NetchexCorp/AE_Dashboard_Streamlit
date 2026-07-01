@@ -14,6 +14,22 @@ TABLE_SCHEDULES = "schedules"
 TABLE_AUDIT = "audit"
 TABLE_ROSTER = "aeroster"
 
+# RIaaS tables — all "Ri"-prefixed so they can never collide with the AE
+# dashboard's tables (asserted in migrations.ensure_tables).
+TABLE_RI_ANALYSES = "RiAnalyses"
+TABLE_RI_ANALYSES_HISTORY = "RiAnalysesHistory"
+TABLE_RI_SCHEDULES = "RiSchedules"
+TABLE_RI_KEY_FINDINGS = "RiKeyFindings"
+TABLE_RI_BENCHMARKS = "RiBenchmarks"
+
+RIAAS_TABLES = [
+    TABLE_RI_ANALYSES,
+    TABLE_RI_ANALYSES_HISTORY,
+    TABLE_RI_SCHEDULES,
+    TABLE_RI_KEY_FINDINGS,
+    TABLE_RI_BENCHMARKS,
+]
+
 ALL_TABLES = [
     TABLE_QUERIES,
     TABLE_HISTORY,
@@ -21,6 +37,7 @@ ALL_TABLES = [
     TABLE_SCHEDULES,
     TABLE_AUDIT,
     TABLE_ROSTER,
+    *RIAAS_TABLES,
 ]
 
 _service_cache = None
