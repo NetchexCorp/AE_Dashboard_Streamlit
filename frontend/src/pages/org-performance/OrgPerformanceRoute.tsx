@@ -7,7 +7,7 @@ export function OrgPerformanceRoute() {
 
   // Server-side gating is authoritative (RIaaS APIs 404 for non-flagged
   // users); this just avoids rendering a dead page on a direct URL hit.
-  if (me.data && !me.data.features.riaas) {
+  if (me.data && !me.data.features?.riaas) {
     return (
       <div className="py-20 text-center text-muted-foreground">
         Page not found.

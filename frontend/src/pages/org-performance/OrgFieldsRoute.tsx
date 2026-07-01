@@ -13,7 +13,7 @@ const TIER_STYLES: Record<string, string> = {
 
 export function OrgFieldsRoute() {
   const me = useMe();
-  const riaas = me.data?.features.riaas === true;
+  const riaas = me.data?.features?.riaas === true;
   const { data, isLoading } = useQuery<FieldRef[]>({
     queryKey: ["riaas", "fields"],
     queryFn: listFields,

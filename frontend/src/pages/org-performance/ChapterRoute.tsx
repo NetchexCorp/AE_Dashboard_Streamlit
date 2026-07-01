@@ -51,7 +51,7 @@ export function ChapterRoute() {
   const period = search.period ?? DEFAULT_PERIOD;
   const motion = search.motion ?? DEFAULT_MOTION;
   const def = chapterBySlug(slug);
-  const riaas = me.data?.features.riaas === true;
+  const riaas = me.data?.features?.riaas === true;
 
   const chapter = useQuery<ChapterResponse>({
     queryKey: ["riaas", "chapter", slug, period, motion],

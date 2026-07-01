@@ -9,7 +9,7 @@ import { useMe } from "@/hooks/useMe";
 
 export function OrgAnalysesConfigRoute() {
   const me = useMe();
-  const riaas = me.data?.features.riaas === true;
+  const riaas = me.data?.features?.riaas === true;
   const { data, isLoading } = useQuery<AnalysisEntry[]>({
     queryKey: ["riaas", "analyses"],
     queryFn: listAnalyses,

@@ -58,7 +58,7 @@ export function OrgReportRoute() {
 
   // Server-side gating is authoritative (RIaaS APIs 404 for non-flagged
   // users); this just avoids rendering a dead page on a direct URL hit.
-  if (me.data && me.data.features.riaas !== true) {
+  if (me.data && me.data.features?.riaas !== true) {
     return (
       <div className="py-20 text-center text-muted-foreground">
         Page not found.
@@ -78,7 +78,7 @@ function OrgReportInner() {
   const qc = useQueryClient();
   const { data: me } = useMe();
   const tz = me?.flags.scheduler_tz ?? "UTC";
-  const riaas = me?.features.riaas === true;
+  const riaas = me?.features?.riaas === true;
   const search = route.useSearch();
   const navigate = route.useNavigate();
 

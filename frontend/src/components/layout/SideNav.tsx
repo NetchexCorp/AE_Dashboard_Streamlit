@@ -56,7 +56,7 @@ const INDIVIDUAL_NAV: TopEntry[] = [
 ];
 
 // "Organization Performance" group — RIaaS revenue intelligence. Rendered
-// only when /api/me reports features.riaas; config entries are admin-only.
+// only when /api/me reports features?.riaas; config entries are admin-only.
 const ORG_SUBNAV: Entry[] = [
   { to: "/org", label: "Overview" },
   ...CHAPTERS.map((c) => ({
@@ -82,7 +82,7 @@ export function SideNav() {
   const collapsed = useUiStore((s) => s.sidebarCollapsed);
   const toggle = useUiStore((s) => s.toggleSidebar);
   const me = useMe();
-  const showOrg = me.data?.features.riaas === true;
+  const showOrg = me.data?.features?.riaas === true;
   const isAdmin = me.data?.role === "admin";
   const orgNav: TopEntry[] = [
     {
