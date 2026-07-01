@@ -63,7 +63,15 @@ ANALYSES: list[AnalysisEntry] = [
         description="Share of contacts with no job title, and how many titled contacts are decision-makers (Director/Head/VP/CxO).",
         formula="% contacts missing job title; % of titled contacts that are decision-makers",
         fields_required=["contact.job_title"],
-        template="", time_filter=False,
+        # GROUP BY caps at 2000 groups; the null group + all large titles are
+        # captured, tail titles are truncated (noted in the caption).
+        template="""
+SELECT Job_Title__c, COUNT(Id) n
+FROM Contact
+GROUP BY Job_Title__c
+ORDER BY COUNT(Id) DESC
+LIMIT 2000
+""", time_filter=False,
     ),
     _e(
         analysis_id="C1-VELOCITY-NB",
@@ -72,7 +80,13 @@ ANALYSES: list[AnalysisEntry] = [
         description="Sales velocity per quarter for New Business, with deals closed, win rate, average amount and average cycle.",
         formula="Velocity = (#Deals × WinRate × ACV) ÷ SalesCycle ($/day)",
         fields_required=["opp.amount", "opp.stage", "opp.close_date", "opp.record_type", "opp.created_date"],
-        template="", time_filter=True,
+        template="""
+SELECT Id, Amount, StageName, CloseDate, CreatedDate, OwnerId, Owner.Name
+FROM Opportunity
+WHERE RecordType.Name IN ('Net New')
+  AND {closed_clause} AND {close_date_clause}
+  AND {territory_clause} AND {seller_clause}
+""", time_filter=True,
     ),
     _e(
         analysis_id="C1-VELOCITY-EXP",
@@ -81,7 +95,13 @@ ANALYSES: list[AnalysisEntry] = [
         description="Sales velocity per quarter for the Expansion motion (cross-sell + upsell).",
         formula="Velocity = (#Deals × WinRate × ACV) ÷ SalesCycle ($/day)",
         fields_required=["opp.amount", "opp.stage", "opp.close_date", "opp.record_type", "opp.created_date"],
-        template="", time_filter=True,
+        template="""
+SELECT Id, Amount, StageName, CloseDate, CreatedDate, OwnerId, Owner.Name
+FROM Opportunity
+WHERE RecordType.Name IN ('Cross-sell','Upsell')
+  AND {closed_clause} AND {close_date_clause}
+  AND {territory_clause} AND {seller_clause}
+""", time_filter=True,
     ),
     _e(
         analysis_id="C1-RPS-NB",
@@ -90,7 +110,13 @@ ANALYSES: list[AnalysisEntry] = [
         description="New Business bookings per active seller per quarter, with seller count overlay.",
         formula="Revenue per Seller = bookings ÷ active seller count",
         fields_required=["opp.amount", "opp.stage", "opp.close_date", "opp.record_type", "opp.owner"],
-        template="", time_filter=True,
+        template="""
+SELECT Id, Amount, StageName, CloseDate, CreatedDate, OwnerId, Owner.Name
+FROM Opportunity
+WHERE RecordType.Name IN ('Net New')
+  AND {closed_clause} AND {close_date_clause}
+  AND {territory_clause} AND {seller_clause}
+""", time_filter=True,
     ),
     _e(
         analysis_id="C1-RPS-EXP",
@@ -99,7 +125,13 @@ ANALYSES: list[AnalysisEntry] = [
         description="Expansion bookings per active seller per quarter, with seller count overlay.",
         formula="Revenue per Seller = bookings ÷ active seller count",
         fields_required=["opp.amount", "opp.stage", "opp.close_date", "opp.record_type", "opp.owner"],
-        template="", time_filter=True,
+        template="""
+SELECT Id, Amount, StageName, CloseDate, CreatedDate, OwnerId, Owner.Name
+FROM Opportunity
+WHERE RecordType.Name IN ('Cross-sell','Upsell')
+  AND {closed_clause} AND {close_date_clause}
+  AND {territory_clause} AND {seller_clause}
+""", time_filter=True,
     ),
     _e(
         analysis_id="C1-TERR-EFF-GAP",
@@ -108,7 +140,13 @@ ANALYSES: list[AnalysisEntry] = [
         description="Sales efficiency by territory; quantifies the top-vs-bottom execution gap.",
         formula="Efficiency = (WinRate × ACV) ÷ SalesCycle",
         fields_required=["opp.amount", "opp.stage", "opp.close_date", "acct.territory", "opp.created_date"],
-        template="", time_filter=True,
+        template="""
+SELECT Id, Amount, StageName, CloseDate, CreatedDate, Account.Account_Territory__r.Name
+FROM Opportunity
+WHERE {motion_clause}
+  AND {closed_clause} AND {close_date_clause}
+  AND {seller_clause}
+""", time_filter=True,
     ),
 
     # ================= Chapter 2 — Win/Loss & Benchmark =================
