@@ -6,7 +6,7 @@ import {
 } from "@tanstack/react-router";
 import { AppShell } from "@/components/layout/AppShell";
 import { DashboardRoute } from "@/pages/DashboardRoute";
-import { DashboardChartsRoute } from "@/pages/DashboardChartsRoute";
+import { MonthRoute, type MonthSearch } from "@/pages/MonthRoute";
 import { DashboardSectionRoute } from "@/pages/DashboardSectionRoute";
 import { DashboardSummaryRoute } from "@/pages/DashboardSummaryRoute";
 import type { FilterSearch } from "@/lib/filterParams";
@@ -21,8 +21,21 @@ const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
   beforeLoad: () => {
-    throw redirect({ to: "/dashboard" });
+    throw redirect({ to: "/month" });
   },
+});
+
+// "The Month" — reported bookings vs plan vs prior year; the story's opening
+// page and the app's home.
+const monthRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/month",
+  component: MonthRoute,
+  validateSearch: (raw: Record<string, unknown>): MonthSearch => ({
+    month: typeof raw.month === "string" ? raw.month : undefined,
+    period: typeof raw.period === "string" ? raw.period : undefined,
+    basis: typeof raw.basis === "string" ? raw.basis : undefined,
+  }),
 });
 
 const dashboardRoute = createRoute({
@@ -57,10 +70,13 @@ const dashboardSummaryRoute = createRoute({
   component: DashboardSummaryRoute,
 });
 
+// Charts were folded into Summary; keep old links working.
 const dashboardChartsRoute = createRoute({
   getParentRoute: () => dashboardRoute,
   path: "charts",
-  component: DashboardChartsRoute,
+  beforeLoad: () => {
+    throw redirect({ to: "/dashboard/summary" });
+  },
 });
 
 const dashboardSectionRoute = createRoute({
@@ -85,6 +101,7 @@ const orgChapterRoute = createRoute({
     period: typeof raw.period === "string" ? raw.period : undefined,
     motion: typeof raw.motion === "string" ? raw.motion : undefined,
     section: typeof raw.section === "string" ? raw.section : undefined,
+    seller: typeof raw.seller === "string" ? raw.seller : undefined,
   }),
 }).lazy(() =>
   import("@/pages/org-performance/ChapterRoute.lazy").then((m) => m.Route),
@@ -164,6 +181,7 @@ const auditRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
+  monthRoute,
   dashboardRoute.addChildren([
     dashboardIndexRoute,
     dashboardSummaryRoute,

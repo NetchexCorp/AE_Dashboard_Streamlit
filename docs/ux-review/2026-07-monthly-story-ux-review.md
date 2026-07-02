@@ -104,10 +104,38 @@ strategy meeting would want "the five headlines, one per chapter."
 | RIaaS overview | Key Findings excerpt | Chapter, findings pinned top |
 | Chapter page | "See individual numbers" | Team Performance |
 
+### The dimension model — two lenses on the same dollar
+
+Every bookings dollar has two independent dimensions, and today each lives in
+only one half of the product:
+
+- **Motion (bookings type)** — *what kind of revenue*: New-Direct, New-Reseller,
+  Cross-Sell, Upsell. This is the workbook's row dimension
+  (`Opportunity.Revenue_Type__c` / groupable `RecordType.Name` in SFDC), and it
+  already rolls up to RIaaS's existing motion filter:
+  `nb` = New-Direct + New-Reseller, `exp` = Cross-Sell + Upsell
+  (`query_builder.py` NEW_BUSINESS_TYPES / EXPANSION_TYPES).
+- **Source** — *who created the pipeline*: Self-Gen, SDR, Channel, Marketing.
+  This is the dashboard's split-credit column dimension (All-Source Summary).
+
+Both lenses must be available at both altitudes:
+
+| | Org level | Individual level |
+|---|---|---|
+| **By motion** | The Month bucket table (new) | Per-AE bookings-by-type columns (P3 — same `SUM(SplitAmount)` pattern as `S1-COL-D`, one variant per RecordType) |
+| **By source** | Source strip on The Month, aggregated from the dashboard API (new) | All-Source Summary + AE drawer (exists today) |
+
+And the filters connect them: a Month bucket row links onward carrying
+`motion=nb|exp`, so landing in a Win/Loss or Pipeline Health chapter arrives
+pre-filtered to the motion you were reading about; the source strip links into
+the matching section page (Self-Gen, SDR, Channel, Marketing) at the same
+period.
+
 ### Shared vocabulary
-One period model everywhere: `MTD / QTD / YTD` on The Month maps to
-`this month / this quarter / ytd` in team + chapter filters, carried in the URL
-so a link from one stop lands on the same period in the next.
+One period model everywhere: `MTD / QTD / YTD` on The Month maps to the team
+dashboard's period params (`this_month`, or a custom from/to range for QTD/YTD)
+and to chapter periods, carried in the URL so a link from one stop lands on the
+same period — and the same motion — in the next.
 
 ---
 
@@ -129,6 +157,13 @@ so a link from one stop lands on the same period in the next.
 
 ## Implementation plan
 
+> **Status:** Phases 1 and 2 are implemented on this branch. The Month is
+> served from stored *reported* results (finance-blessed, one JSON document
+> per month, seeded with June 2026) rather than live SOQL — matching how the
+> numbers are actually produced; live derivation can replace the store later
+> without changing the page. Phase 3 (table pass + per-AE motion columns)
+> remains open.
+
 **Phase 1 — IA restructure (frontend only, no new data)**
 Re-group SideNav into the five stops; merge the two Reports pages into Admin;
 pin Key Findings to the top of chapters; put findings excerpts on the RIaaS
@@ -144,6 +179,8 @@ overview; add AE drawer ⇄ Coach cross-links; fold Charts into Summary.
 - Page: headline (Total vs Plan vs PY) → bucket table with variance → monthly
   trend vs plan → deep-dive links. Basis toggle mirrors the workbook's two tabs.
 
-**Phase 3 — Table pass**
+**Phase 3 — Table pass + per-AE motion split**
 Apply the five readability rules to AllSourceSummary, section tables, and RIaaS
-matrix/table renderers; per-table feature flags in the DataTable API.
+matrix/table renderers; per-table feature flags in the DataTable API. Add
+per-AE bookings-by-type columns (New / Cross-Sell / Upsell) to the column
+registry and AE drawer so the motion lens exists at the individual level too.

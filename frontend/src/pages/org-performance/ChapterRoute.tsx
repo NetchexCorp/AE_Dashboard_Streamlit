@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getRouteApi } from "@tanstack/react-router";
+import { getRouteApi, Link } from "@tanstack/react-router";
 import { type ChapterResponse, fetchChapter } from "@/api/riaas";
 import { AnalysisCard } from "@/components/riaas/AnalysisCard";
 import { KeyFindingsPanel } from "@/components/riaas/KeyFindingsPanel";
@@ -11,6 +11,8 @@ export interface ChapterSearch {
   period?: string;
   motion?: string;
   section?: string;
+  /** Salesforce user id — scopes the chapter's analyses to one seller. */
+  seller?: string;
 }
 
 export const DEFAULT_PERIOD = "last_4_quarters";
@@ -52,12 +54,13 @@ export function ChapterRoute() {
 
   const period = search.period ?? DEFAULT_PERIOD;
   const motion = search.motion ?? DEFAULT_MOTION;
+  const seller = search.seller;
   const def = chapterBySlug(slug);
   const riaas = me.data?.features?.riaas === true;
 
   const chapter = useQuery<ChapterResponse>({
-    queryKey: ["riaas", "chapter", slug, period, motion],
-    queryFn: () => fetchChapter(slug, { period, motion }),
+    queryKey: ["riaas", "chapter", slug, period, motion, seller ?? ""],
+    queryFn: () => fetchChapter(slug, { period, motion, seller_id: seller }),
     staleTime: 60_000,
     enabled: riaas && def != null,
   });
@@ -93,9 +96,29 @@ export function ChapterRoute() {
         <div>
           <h1 className="text-xl font-semibold">{def.title}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Organization Performance · quarterly trends always show the last 8
-            fiscal quarters.
+            Revenue Intelligence · quarterly trends always show the last 8
+            fiscal quarters ·{" "}
+            <Link
+              to="/dashboard/summary"
+              className="font-medium text-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:decoration-foreground"
+            >
+              see individual numbers →
+            </Link>
           </p>
+          {seller && (
+            <p className="mt-1 text-sm">
+              <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-xs">
+                Scoped to one seller ·{" "}
+                <button
+                  type="button"
+                  className="font-medium underline"
+                  onClick={() => setSearch({ seller: undefined })}
+                >
+                  clear
+                </button>
+              </span>
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <label className="flex items-center gap-2 text-sm">
@@ -154,6 +177,10 @@ export function ChapterRoute() {
         </div>
       )}
 
+      {/* The narrative leads; the analyses below are its evidence. */}
+      {chapter.data && (
+        <KeyFindingsPanel slug={slug} findings={chapter.data.key_findings} />
+      )}
       {chapter.data && (
         <ChapterSections
           slug={slug}
@@ -161,9 +188,6 @@ export function ChapterRoute() {
           activeSection={search.section}
           onSelect={(key) => setSearch({ section: key })}
         />
-      )}
-      {chapter.data && (
-        <KeyFindingsPanel slug={slug} findings={chapter.data.key_findings} />
       )}
     </div>
   );

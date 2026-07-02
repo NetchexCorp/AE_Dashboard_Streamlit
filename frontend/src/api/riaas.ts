@@ -198,6 +198,19 @@ export function listChapters(): Promise<ChapterSummary[]> {
   return api<ChapterSummary[]>("/api/riaas/chapters");
 }
 
+export interface KeyFindingsDigestEntry {
+  slug: string;
+  title: string;
+  text: string;
+  updated_by: string;
+  updated_at: string;
+}
+
+/** All chapters' Key Findings narratives — cheap, no Salesforce queries. */
+export function fetchKeyFindingsDigest(): Promise<KeyFindingsDigestEntry[]> {
+  return api<KeyFindingsDigestEntry[]>("/api/riaas/key-findings");
+}
+
 export function fetchChapter(
   slug: string,
   filters: ChapterFilters = {},

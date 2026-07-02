@@ -1,6 +1,8 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { ArrowDown, X } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { ArrowDown, GraduationCap, X } from "lucide-react";
 import { useFilters } from "@/hooks/useFilters";
+import { useMe } from "@/hooks/useMe";
 import { useAeDetail, useColumnMeta } from "@/hooks/useDashboard";
 import { fmt } from "@/lib/formatters";
 import { cn } from "@/lib/cn";
@@ -13,6 +15,8 @@ import {
 
 export function AEDrillDownDrawer() {
   const { filters, set } = useFilters();
+  const me = useMe();
+  const riaas = me.data?.features?.riaas === true;
   const cols = useColumnMeta();
   const detail = useAeDetail(filters.aeDrillId, filters);
   const open = !!filters.aeDrillId;
@@ -47,6 +51,18 @@ export function AEDrillDownDrawer() {
                   )}
                 </div>
               </Dialog.Description>
+              {riaas && filters.aeDrillId && (
+                <Link
+                  to="/org/chapters/$slug"
+                  params={{ slug: "coach" }}
+                  search={{ seller: filters.aeDrillId }}
+                  onClick={close}
+                  className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                >
+                  <GraduationCap className="h-3.5 w-3.5" aria-hidden="true" />
+                  Coaching insights for this AE →
+                </Link>
+              )}
             </div>
             <Dialog.Close asChild>
               <button

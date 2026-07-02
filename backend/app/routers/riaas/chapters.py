@@ -60,6 +60,16 @@ def get_chapter(
         raise HTTPException(status_code=502, detail=f"Salesforce auth failed: {exc}")
 
 
+@router.get("/key-findings")
+def list_key_findings() -> list[dict]:
+    """All chapters' Key Findings narratives — cheap (no Salesforce queries).
+
+    Powers the Organization Performance overview digest.
+    """
+    svc = get_key_findings_service()
+    return [{**c, **svc.get(c["slug"])} for c in CHAPTERS]
+
+
 class KeyFindingsIn(BaseModel):
     text: str
 

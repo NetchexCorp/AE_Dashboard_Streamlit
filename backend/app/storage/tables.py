@@ -13,6 +13,7 @@ TABLE_USERS = "users"
 TABLE_SCHEDULES = "schedules"
 TABLE_AUDIT = "audit"
 TABLE_ROSTER = "aeroster"
+TABLE_MONTHLY_RESULTS = "monthlyresults"
 
 # RIaaS tables — all "Ri"-prefixed so they can never collide with the AE
 # dashboard's tables (asserted in migrations.ensure_tables).
@@ -37,6 +38,7 @@ ALL_TABLES = [
     TABLE_SCHEDULES,
     TABLE_AUDIT,
     TABLE_ROSTER,
+    TABLE_MONTHLY_RESULTS,
     *RIAAS_TABLES,
 ]
 

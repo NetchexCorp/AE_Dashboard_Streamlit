@@ -3,11 +3,14 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Activity,
   Building2,
+  CalendarDays,
   ChevronLeft,
   ChevronRight,
+  GraduationCap,
   LayoutDashboard,
   type LucideIcon,
   Mail,
+  Send,
   Settings,
 } from "lucide-react";
 import { Logo } from "./Logo";
@@ -31,13 +34,12 @@ interface TopEntry extends Entry {
   match?: string;
 }
 
-const DASHBOARD_SUBNAV: Entry[] = [
+const TEAM_SUBNAV: Entry[] = [
   { to: "/dashboard/summary", label: "Summary" },
   ...SECTION_DEFS.map((s) => ({
     to: `/dashboard/section/${s.slug}`,
     label: s.label,
   })),
-  { to: "/dashboard/charts", label: "Charts" },
 ];
 
 const CONFIG_SUBNAV: Entry[] = [
@@ -47,25 +49,11 @@ const CONFIG_SUBNAV: Entry[] = [
   { to: "/config/roster", label: "AE Roster" },
 ];
 
-// "Individual Performance" group — the per-AE dashboard users see day-to-day,
-// with its own Reports, Config, and Activity subsections.
-const INDIVIDUAL_NAV: TopEntry[] = [
-  {
-    to: "/dashboard",
-    label: "Dashboard",
-    Icon: LayoutDashboard,
-    subnav: DASHBOARD_SUBNAV,
-  },
-  { to: "/schedules", label: "Reports", Icon: Mail },
-  { to: "/config", label: "Config", Icon: Settings, subnav: CONFIG_SUBNAV },
-  { to: "/audit", label: "Activity", Icon: Activity },
-];
-
-// "Organization Performance" group — RIaaS revenue intelligence. Rendered
-// only when /api/me reports features?.riaas; Config is admin-only.
-const ORG_CHAPTERS_SUBNAV: Entry[] = [
+// Revenue Intelligence chapters. Coach is promoted to its own top-level
+// "Coaching" stop, so it is excluded here.
+const RI_SUBNAV: Entry[] = [
   { to: "/org", label: "Overview" },
-  ...CHAPTERS.map((c) => ({
+  ...CHAPTERS.filter((c) => c.slug !== "coach").map((c) => ({
     to: `/org/chapters/${c.slug}`,
     label: c.navLabel,
   })),
@@ -83,26 +71,61 @@ export function SideNav() {
   const me = useMe();
   const showOrg = me.data?.features?.riaas === true;
   const isAdmin = me.data?.role === "admin";
-  const orgNav: TopEntry[] = [
+
+  // The story spine: the month -> why -> who -> what to do about it.
+  const storyNav: TopEntry[] = [
+    { to: "/month", label: "The Month", Icon: CalendarDays },
+    ...(showOrg
+      ? [
+          {
+            to: "/org",
+            label: "Revenue Intelligence",
+            Icon: Building2,
+            subnav: RI_SUBNAV,
+          },
+        ]
+      : []),
     {
-      to: "/org",
-      label: "Chapters",
-      Icon: Building2,
-      subnav: ORG_CHAPTERS_SUBNAV,
+      to: "/dashboard",
+      label: "Team Performance",
+      Icon: LayoutDashboard,
+      subnav: TEAM_SUBNAV,
     },
-    { to: "/org/report", label: "Reports", Icon: Mail },
-    ...(isAdmin
+    ...(showOrg
+      ? [{ to: "/org/chapters/coach", label: "Coaching", Icon: GraduationCap }]
+      : []),
+  ];
+
+  // Plumbing, not story: schedules, config, audit.
+  const adminNav: TopEntry[] = [
+    { to: "/schedules", label: "Team Digests", Icon: Mail },
+    ...(showOrg
+      ? [{ to: "/org/report", label: "RI Report Emails", Icon: Send }]
+      : []),
+    { to: "/config", label: "Config", Icon: Settings, subnav: CONFIG_SUBNAV },
+    ...(showOrg && isAdmin
       ? [
           {
             to: "/org/config/analyses",
             match: "/org/config",
-            label: "Config",
+            label: "RI Config",
             Icon: Settings,
             subnav: ORG_CONFIG_SUBNAV,
           },
         ]
       : []),
+    { to: "/audit", label: "Activity", Icon: Activity },
   ];
+
+  // Active entry is resolved across BOTH groups (longest prefix wins) so a
+  // story entry like /org never stays lit on an admin sibling (/org/report).
+  const allEntries = [...storyNav, ...adminNav];
+  const activeEntry = allEntries
+    .filter((e) => {
+      const m = e.match ?? e.to;
+      return location.pathname === m || location.pathname.startsWith(m + "/");
+    })
+    .sort((a, b) => (b.match ?? b.to).length - (a.match ?? a.to).length)[0];
 
   return (
     <aside
@@ -124,15 +147,20 @@ export function SideNav() {
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-2 py-3">
-        <GroupLabel collapsed={collapsed}>Individual Performance</GroupLabel>
-        <NavGroup nav={INDIVIDUAL_NAV} collapsed={collapsed} pathname={location.pathname} />
-        {showOrg && (
-          <>
-            <div className="my-2 mx-1 border-t border-border/60" />
-            <GroupLabel collapsed={collapsed}>Organization Performance</GroupLabel>
-            <NavGroup nav={orgNav} collapsed={collapsed} pathname={location.pathname} />
-          </>
-        )}
+        <NavGroup
+          nav={storyNav}
+          collapsed={collapsed}
+          pathname={location.pathname}
+          activeEntry={activeEntry}
+        />
+        <div className="my-2 mx-1 border-t border-border/60" />
+        <GroupLabel collapsed={collapsed}>Admin</GroupLabel>
+        <NavGroup
+          nav={adminNav}
+          collapsed={collapsed}
+          pathname={location.pathname}
+          activeEntry={activeEntry}
+        />
       </nav>
 
       {/* Footer — user identity + collapse toggle */}
@@ -180,19 +208,14 @@ function NavGroup({
   nav,
   collapsed,
   pathname,
+  activeEntry,
 }: {
   nav: TopEntry[];
   collapsed: boolean;
   pathname: string;
+  /** Resolved across all groups by the caller (longest prefix wins). */
+  activeEntry: TopEntry | undefined;
 }) {
-  // Longest matching prefix wins so a parent-path entry (e.g. /org) doesn't
-  // stay active on a sibling's deeper route (/org/report, /org/config/*).
-  const active = nav
-    .filter((e) => {
-      const m = e.match ?? e.to;
-      return pathname === m || pathname.startsWith(m + "/");
-    })
-    .sort((a, b) => (b.match ?? b.to).length - (a.match ?? a.to).length)[0];
   return (
     <ul className="space-y-0.5">
       {nav.map((entry) => (
@@ -201,7 +224,7 @@ function NavGroup({
           entry={entry}
           collapsed={collapsed}
           pathname={pathname}
-          isOnRoute={entry === active}
+          isOnRoute={entry === activeEntry}
         />
       ))}
     </ul>

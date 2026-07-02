@@ -14,9 +14,6 @@ interface PageMeta {
 }
 
 function pageMeta(pathname: string): PageMeta {
-  if (pathname.startsWith("/dashboard/charts")) {
-    return { title: "Charts", subtitle: "Bookings + attainment by AE" };
-  }
   const sectionMatch = pathname.match(/^\/dashboard\/section\/([^/]+)/);
   if (sectionMatch) {
     const def = SECTION_DEFS.find((s) => s.slug === sectionMatch[1]);
@@ -25,7 +22,7 @@ function pageMeta(pathname: string): PageMeta {
     }
   }
   // /dashboard/summary or fallback
-  return { title: "Summary", subtitle: "All Source Summary" };
+  return { title: "Team Performance", subtitle: "All Source Summary — per-AE" };
 }
 
 export function DashboardRoute() {
