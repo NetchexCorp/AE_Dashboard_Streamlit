@@ -10,7 +10,7 @@ import type {
   ColumnMeta,
 } from "@/types/dashboard";
 import { useFilters } from "@/hooks/useFilters";
-import { COL_W } from "@/lib/columns";
+import { COL_W, shortLabel } from "@/lib/columns";
 import { sourceOrderIndex } from "@/lib/sections";
 import { fmt } from "@/lib/formatters";
 import { DataTable } from "@/components/tables/DataTable";
@@ -26,17 +26,23 @@ interface Props {
 }
 
 /**
- * Render a column header. The on-table label and the tooltip title are the
- * same string (the column's display_name), so what you read in the header
- * matches what you read on hover; the tooltip body carries the human-readable
- * formula (description). Falls back to `fallback` when no metadata exists.
+ * Render a column header: a short scannable label on the table, with the
+ * column's full registry name as the tooltip title and the human-readable
+ * formula (description) as the body. `labelOverride` forces the on-table
+ * label (used by grouped source columns, where the group header already
+ * names the source).
  */
-function withTooltip(meta: ColumnMeta | undefined, fallback: string): ReactNode {
-  const label = meta?.display_name || fallback;
+function withTooltip(
+  meta: ColumnMeta | undefined,
+  fallback: string,
+  labelOverride?: string,
+): ReactNode {
+  const full = meta?.display_name || fallback;
+  const label = labelOverride ?? (meta ? shortLabel(meta.col_id, full) : full);
   if (!meta) return label;
   return (
     <InfoTooltip
-      title={label}
+      title={full}
       description={meta.description || meta.aggregation || meta.col_id}
     >
       <span className="cursor-help underline decoration-dotted decoration-muted-foreground/40 underline-offset-2">
@@ -85,34 +91,48 @@ export function AllSourceSummary({ rows, sources, columnMeta = [] }: Props) {
   }, [columnMeta]);
 
   const columns = useMemo<ColumnDef<AllSourceSummaryRow, unknown>[]>(() => {
-    // Per-source columns are flat (no column-group header row). Each header
-    // shows the column's full display_name (e.g. "Self-Gen Bookings $ (Period)")
-    // so it stands alone, with the human-readable formula surfaced on hover.
-    // Sort by the canonical source order (keeping the original index `i` so the
-    // accessor still reads the right cell from `r.sources`).
+    // Each source's Bookings/Pipeline pair sits under one group header that
+    // names the source, so the pair reads as a unit and the leaf headers stay
+    // two words. Full registry names remain one hover away. Sort by the
+    // canonical source order (keeping the original index `i` so the accessor
+    // still reads the right cell from `r.sources`).
     const orderedSources = sources
       .map((s, i) => ({ s, i }))
       .sort((a, b) => sourceOrderIndex(a.s.label) - sourceOrderIndex(b.s.label));
-    const sourceColumns = orderedSources.flatMap(({ s, i }) => [
-      helper.accessor((r) => r.sources[i]?.bookings ?? null, {
-        id: `${s.label}-b`,
-        header: () =>
-          withTooltip(metaById.get(s.bookings_col), `${s.label} Bookings`),
-        cell: (c) => <PlainNumber value={c.getValue() as number | null} />,
-        sortingFn: numericSort,
-        aggregationFn: "sum",
-        meta: { aggregate: "sum", format: "currency", align: "right", width: COL_W.num },
+    const sourceColumns = orderedSources.map(({ s, i }) =>
+      helper.group({
+        id: `src-${s.label}`,
+        header: s.label,
+        columns: [
+          helper.accessor((r) => r.sources[i]?.bookings ?? null, {
+            id: `${s.label}-b`,
+            header: () =>
+              withTooltip(
+                metaById.get(s.bookings_col),
+                `${s.label} Bookings`,
+                "Bookings",
+              ),
+            cell: (c) => <PlainNumber value={c.getValue() as number | null} />,
+            sortingFn: numericSort,
+            aggregationFn: "sum",
+            meta: { aggregate: "sum", format: "currency", align: "right", width: COL_W.num },
+          }),
+          helper.accessor((r) => r.sources[i]?.pipeline ?? null, {
+            id: `${s.label}-p`,
+            header: () =>
+              withTooltip(
+                metaById.get(s.pipeline_col),
+                `${s.label} Pipeline`,
+                "Pipeline",
+              ),
+            cell: (c) => <PlainNumber value={c.getValue() as number | null} />,
+            sortingFn: numericSort,
+            aggregationFn: "sum",
+            meta: { aggregate: "sum", format: "currency", align: "right", width: COL_W.num },
+          }),
+        ],
       }),
-      helper.accessor((r) => r.sources[i]?.pipeline ?? null, {
-        id: `${s.label}-p`,
-        header: () =>
-          withTooltip(metaById.get(s.pipeline_col), `${s.label} Pipeline`),
-        cell: (c) => <PlainNumber value={c.getValue() as number | null} />,
-        sortingFn: numericSort,
-        aggregationFn: "sum",
-        meta: { aggregate: "sum", format: "currency", align: "right", width: COL_W.num },
-      }),
-    ]);
+    );
 
     return [
       helper.accessor("ae_name", {
@@ -224,7 +244,7 @@ export function AllSourceSummary({ rows, sources, columnMeta = [] }: Props) {
         data={rows}
         columns={columns}
         emptyMessage="No AEs match the current filters."
-        enableGlobalSearch
+        enableGlobalSearch={rows.length > 10}
         enableColumnFilters={false}
         stickyFirstColumn
         exportFilename="all-source-summary"

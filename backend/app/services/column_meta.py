@@ -15,6 +15,7 @@ FormatHint = Literal["currency", "percent", "number"]
 
 SECTION_DISPLAY_NAMES: dict[str, str] = {
     "Pipeline & Quota": "Pipeline & Quota",
+    "Bookings by Motion": "Bookings by Motion (New / Cross-Sell / Upsell)",
     "Self-Gen Pipeline Creation": "Self Gen Pipeline Creation (not channel partners – prospects)",
     "SDR Activity": "SDR Activity for This Rep",
     "Channel Partners": "Channel Partners",
@@ -43,6 +44,9 @@ CURRENCY_COLS: set[str] = {
     "S6-COL-AP",
     "S6-COL-AQ",
     "S6-COL-AR",
+    "S7-COL-BN",
+    "S7-COL-BX",
+    "S7-COL-BU",
 }
 PERCENT_COLS: set[str] = {"S1-COL-E", "S1-COL-H"}
 LOWER_IS_BETTER: set[str] = {"S1-COL-N"}

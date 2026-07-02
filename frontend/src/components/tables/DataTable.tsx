@@ -347,10 +347,14 @@ export function DataTable<TRow>({
                   const sticky = stickyFirstColumn && idx === 0;
                   const alignRight = header.column.columnDef.meta?.align === "right";
                   const toggleSort = header.column.getToggleSortingHandler();
-                  // Draggable for reorder, except the sticky anchor column and
-                  // placeholder header cells.
+                  const isGroupHeader = header.subHeaders.length > 0;
+                  // Draggable for reorder, except the sticky anchor column,
+                  // placeholder cells, and group headers (order is per leaf).
                   const draggable =
-                    enableReorder && !sticky && !header.isPlaceholder;
+                    enableReorder &&
+                    !sticky &&
+                    !header.isPlaceholder &&
+                    !isGroupHeader;
                   return (
                     <th
                       key={header.id}
@@ -398,7 +402,11 @@ export function DataTable<TRow>({
                       className={cn(
                         "border-b border-border px-2 py-2 align-bottom text-xs font-medium text-muted-foreground",
                         hasWidths ? "whitespace-normal break-words" : "whitespace-nowrap",
-                        alignRight ? "text-right" : "text-left",
+                        isGroupHeader
+                          ? "text-center font-semibold text-foreground"
+                          : alignRight
+                            ? "text-right"
+                            : "text-left",
                         sticky && "sticky left-0 z-30 bg-muted/70",
                         canSort &&
                           "cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",

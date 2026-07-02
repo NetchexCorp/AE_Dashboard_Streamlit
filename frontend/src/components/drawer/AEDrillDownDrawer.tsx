@@ -6,7 +6,11 @@ import { useMe } from "@/hooks/useMe";
 import { useAeDetail, useColumnMeta } from "@/hooks/useDashboard";
 import { fmt } from "@/lib/formatters";
 import { cn } from "@/lib/cn";
-import { OPEN_PIPELINE_COL, OPEN_PIPELINE_NEEDED_COL } from "@/lib/columns";
+import {
+  MOTION_COLS,
+  OPEN_PIPELINE_COL,
+  OPEN_PIPELINE_NEEDED_COL,
+} from "@/lib/columns";
 import {
   orderedSectionColumns,
   sectionOrderIndex,
@@ -103,20 +107,24 @@ export function AEDrillDownDrawer() {
                       <div className="space-y-1.5">
                         <TotalRow label="Quota (MTD)" value={ass.quota} />
                         <TotalRow
-                          label="Bookings in time period"
+                          label="Bookings"
+                          fullLabel="Bookings in time period"
                           value={ass.total_bookings}
                         />
                         <TotalRow
-                          label="Open Pipeline with Current Month Close"
+                          label="Open Pipeline"
+                          fullLabel="Open Pipeline with Current Month Close"
                           value={ass.open_pipeline}
                           short={short}
                         />
                         <TotalRow
-                          label="Open Pipeline Needed to Quota with Current Month Close"
+                          label="Pipeline Needed"
+                          fullLabel="Open Pipeline Needed to Quota with Current Month Close"
                           value={ass.open_pipeline_needed}
                         />
                         <TotalRow
-                          label="Pipeline generated in time period"
+                          label="Pipeline Created"
+                          fullLabel="Pipeline generated in time period"
                           value={ass.total_pipeline}
                         />
                         {sortedSources.map((s) => (
@@ -138,6 +146,29 @@ export function AEDrillDownDrawer() {
                       </div>
                     );
                   })()}
+                </section>
+
+                {/* The other lens on the same bookings dollars: motion
+                    (bookings type) instead of source. */}
+                <section>
+                  <h3 className="mb-2 text-sm font-medium text-muted-foreground">
+                    Bookings by Motion
+                  </h3>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {MOTION_COLS.map((m) => (
+                      <div
+                        key={m.colId}
+                        className="rounded-md border border-border px-3 py-2"
+                      >
+                        <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                          {m.label}
+                        </div>
+                        <div className="mt-0.5 text-sm font-semibold tabular-nums">
+                          {fmt(detail.data.values[m.colId] ?? null, "currency")}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </section>
 
                 {cols.data && (
@@ -219,16 +250,19 @@ export function AEDrillDownDrawer() {
  */
 function TotalRow({
   label,
+  fullLabel,
   value,
   short = false,
 }: {
   label: string;
+  /** Full registry name, shown on hover when the visible label is shortened. */
+  fullLabel?: string;
   value: number | null;
   short?: boolean;
 }) {
   return (
     <div className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm">
-      <span className="font-medium">{label}</span>
+      <span className="font-medium" title={fullLabel}>{label}</span>
       <span
         title={short ? "Below the open pipeline needed to hit quota" : undefined}
         className={cn(

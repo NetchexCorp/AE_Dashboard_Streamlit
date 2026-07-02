@@ -157,12 +157,16 @@ same period — and the same motion — in the next.
 
 ## Implementation plan
 
-> **Status:** Phases 1 and 2 are implemented on this branch. The Month is
+> **Status:** all three phases are implemented on this branch. The Month is
 > served from stored *reported* results (finance-blessed, one JSON document
 > per month, seeded with June 2026) rather than live SOQL — matching how the
 > numbers are actually produced; live derivation can replace the store later
-> without changing the page. Phase 3 (table pass + per-AE motion columns)
-> remains open.
+> without changing the page. Phase 3 added the `Bookings by Motion` registry
+> section (S7-COL-BN/BX/BU — New incl. reseller, Cross-Sell, Upsell, mirroring
+> the workbook's Mapping Detail incl. reporting adjustments), a "By Motion"
+> per-AE section page, a motion block in the AE drawer, and the table
+> readability pass (short headers + full names in tooltips, source group
+> headers, search gated to tables >10 rows).
 
 **Phase 1 — IA restructure (frontend only, no new data)**
 Re-group SideNav into the five stops; merge the two Reports pages into Admin;

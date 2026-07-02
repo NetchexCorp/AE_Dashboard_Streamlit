@@ -22,3 +22,33 @@ export const COL_W = {
   /** Any numeric / currency value column. */
   num: "7.5rem",
 } as const;
+
+/** Per-AE Bookings-by-Motion columns (New / Cross-Sell / Upsell). */
+export const MOTION_COLS = [
+  { colId: "S7-COL-BN", label: "New" },
+  { colId: "S7-COL-BX", label: "Cross-Sell" },
+  { colId: "S7-COL-BU", label: "Upsell" },
+] as const;
+
+/**
+ * Short on-table header labels for columns whose registry display_name is a
+ * sentence. The full name + formula stay one hover away (InfoTooltip); the
+ * header itself stays scannable. Columns not listed here use display_name.
+ */
+export const SHORT_LABELS: Record<string, string> = {
+  "S1-COL-E": "Attainment % (YTD)",
+  "S1-COL-H": "Attainment % (MTD)",
+  "S1-COL-I": "Open Pipeline",
+  "S1-COL-K": "Opps Created",
+  "S1-COL-L": "Pipeline Created",
+  "S1-COL-M": "Bookings",
+  "S1-COL-N": "Closed Lost",
+  "S1-COL-O": "Pipeline Needed",
+  "S7-COL-BN": "New",
+  "S7-COL-BX": "Cross-Sell",
+  "S7-COL-BU": "Upsell",
+};
+
+export function shortLabel(colId: string, displayName: string): string {
+  return SHORT_LABELS[colId] ?? displayName;
+}

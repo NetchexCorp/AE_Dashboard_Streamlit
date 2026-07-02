@@ -1028,10 +1028,73 @@ WHERE {activity_owner_clause}
 # REGISTRY — ordered list as in spec Section E
 # ============================================================
 
+# Section 7 — Bookings by Motion. The same split-credited closed-won dollars
+# as the source columns, cut by Revenue Type instead of source. Buckets mirror
+# the monthly Bookings Results workbook's Mapping Detail: reporting
+# adjustments fold into the category they adjust. "New" spans direct and
+# reseller (the org's SFDC schema exposed here has no groupable reseller
+# flag; the reported monthly numbers carry that split).
+S7_COL_BN = SOQLEntry(
+    col_id="S7-COL-BN",
+    display_name="New Bookings (Period)",
+    section="Bookings by Motion",
+    description="Closed-won Net New revenue (split-credited, incl. Net New reporting adjustments) with a Close Date in the selected period — direct + reseller.",
+    aggregation="SUM(SplitAmount)",
+    time_filter=True,
+    template="""
+SELECT SUM(SplitAmount) total
+FROM OpportunitySplit
+WHERE Opportunity.StageName = 'Closed/Won'
+  AND Opportunity.Revenue_Type__c IN ('Net New', 'Reporting Adjustment - Net New')
+  AND {owner_clause}
+  AND Opportunity.CloseDate >= {time_start_date}
+  AND Opportunity.CloseDate <= {time_end_date}
+""",
+)
+
+S7_COL_BX = SOQLEntry(
+    col_id="S7-COL-BX",
+    display_name="Cross-Sell Bookings (Period)",
+    section="Bookings by Motion",
+    description="Closed-won Cross Sell (A/B) revenue (split-credited) with a Close Date in the selected period.",
+    aggregation="SUM(SplitAmount)",
+    time_filter=True,
+    template="""
+SELECT SUM(SplitAmount) total
+FROM OpportunitySplit
+WHERE Opportunity.StageName = 'Closed/Won'
+  AND Opportunity.Revenue_Type__c = 'Cross Sell (A/B)'
+  AND {owner_clause}
+  AND Opportunity.CloseDate >= {time_start_date}
+  AND Opportunity.CloseDate <= {time_end_date}
+""",
+)
+
+S7_COL_BU = SOQLEntry(
+    col_id="S7-COL-BU",
+    display_name="Upsell Bookings (Period)",
+    section="Bookings by Motion",
+    description="Closed-won Upsell (A/C) revenue (split-credited, incl. Upsell reporting adjustments) with a Close Date in the selected period.",
+    aggregation="SUM(SplitAmount)",
+    time_filter=True,
+    template="""
+SELECT SUM(SplitAmount) total
+FROM OpportunitySplit
+WHERE Opportunity.StageName = 'Closed/Won'
+  AND Opportunity.Revenue_Type__c IN ('Upsell (A/C)', 'Reporting Adjustment - Upsell')
+  AND {owner_clause}
+  AND Opportunity.CloseDate >= {time_start_date}
+  AND Opportunity.CloseDate <= {time_end_date}
+""",
+)
+
+
 ALL_COLUMNS: list[SOQLEntry] = [
     # Section 1 — Pipeline & Quota
     S1_COL_C, S1_COL_D, S1_COL_E, S1_COL_F, S1_COL_G, S1_COL_H, S1_COL_O,
     S1_COL_I, S1_COL_J, S1_COL_K, S1_COL_L, S1_COL_M, S1_COL_N,
+    # Section 7 — Bookings by Motion: New, Cross-Sell, Upsell
+    S7_COL_BN, S7_COL_BX, S7_COL_BU,
     # Section 2 — Self-Gen: Pipeline $, Bookings $, Opps, Emails, Calls, Voicemail, Foot Canvass, Net New
     S6_COL_AF, S6_COL_AM, S6_COL_AE, S2_COL_O, S2_COL_P, S2_COL_Q, S2_COL_R, S2_COL_S,
     # Section 3 — SDR: Pipeline $, Bookings $, Opps, Emails, Calls, Mtgs Scheduled, Mtgs Held
@@ -1048,6 +1111,7 @@ COLUMN_BY_ID: dict[str, SOQLEntry] = {c.col_id: c for c in ALL_COLUMNS}
 
 SECTIONS: list[str] = [
     "Pipeline & Quota",
+    "Bookings by Motion",
     "Self-Gen Pipeline Creation",
     "SDR Activity",
     "Channel Partners",

@@ -8,7 +8,12 @@ import type { AERow, ColumnMeta } from "@/types/dashboard";
 import { DataTable } from "@/components/tables/DataTable";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { useFilters } from "@/hooks/useFilters";
-import { COL_W, OPEN_PIPELINE_COL, OPEN_PIPELINE_NEEDED_COL } from "@/lib/columns";
+import {
+  COL_W,
+  OPEN_PIPELINE_COL,
+  OPEN_PIPELINE_NEEDED_COL,
+  shortLabel,
+} from "@/lib/columns";
 import { fmt } from "@/lib/formatters";
 import { cn } from "@/lib/cn";
 
@@ -70,13 +75,15 @@ export function SectionTable({ section, columns, rows, showHeader = true }: Prop
           id: col.col_id,
           aggregationFn: aggregate === "sum" ? "sum" : undefined,
           meta: { aggregate, format: col.format, align: "right", width: COL_W.num },
+          // Short label on the table; the full registry name is the tooltip
+          // title so nothing is lost, just moved one hover away.
           header: () => (
             <InfoTooltip
               title={col.display_name}
               description={col.description || col.aggregation || col.col_id}
             >
               <span className="cursor-help underline decoration-dotted decoration-muted-foreground/40 underline-offset-2">
-                {col.display_name}
+                {shortLabel(col.col_id, col.display_name)}
               </span>
             </InfoTooltip>
           ),
@@ -125,7 +132,7 @@ export function SectionTable({ section, columns, rows, showHeader = true }: Prop
         data={rows}
         columns={tableColumns}
         emptyMessage="No data."
-        enableGlobalSearch
+        enableGlobalSearch={rows.length > 10}
         enableColumnFilters={false}
         stickyFirstColumn
         exportFilename={`section-${section.key.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}

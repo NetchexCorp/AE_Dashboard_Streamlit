@@ -34,3 +34,19 @@ def test_columns_format_hints(client: TestClient) -> None:
     # Lower-is-better flag set for the documented column
     assert by_id["S1-COL-N"]["lower_is_better"] is True
     assert by_id["S1-COL-C"]["lower_is_better"] is False
+
+
+def test_motion_section_present(client):
+    body = client.get("/api/columns").json()
+    sections = [s["key"] for s in body["sections"]]
+    assert "Bookings by Motion" in sections
+    motion_cols = [
+        c["col_id"] for c in body["columns"] if c["section"] == "Bookings by Motion"
+    ]
+    assert motion_cols == ["S7-COL-BN", "S7-COL-BX", "S7-COL-BU"]
+    fmts = {
+        c["col_id"]: c["format"]
+        for c in body["columns"]
+        if c["section"] == "Bookings by Motion"
+    }
+    assert set(fmts.values()) == {"currency"}

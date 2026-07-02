@@ -12,7 +12,9 @@ export interface SectionDef {
   label: string;
   /** Section-specific Bookings column id (leads the headline trio). */
   bookingsCol: string;
-  /** Section-specific Pipeline Generated column id (trails the headline trio). */
+  /** Section-specific Pipeline Generated column id (trails the headline trio).
+   *  Empty string = section has no pipeline lens (e.g. Bookings by Motion);
+   *  the headline trio (with Open Pipeline) is not injected. */
   pipelineCol: string;
 }
 
@@ -20,6 +22,7 @@ export interface SectionDef {
 // Self-Gen → Channel → SDR → Marketing.
 export const SECTION_DEFS: SectionDef[] = [
   { slug: "pipeline-quota", key: "Pipeline & Quota", label: "Pipeline & Quota", bookingsCol: "S1-COL-M", pipelineCol: "S1-COL-L" },
+  { slug: "motion", key: "Bookings by Motion", label: "By Motion", bookingsCol: "S7-COL-BN", pipelineCol: "" },
   { slug: "self-gen", key: "Self-Gen Pipeline Creation", label: "Self-Gen Pipeline", bookingsCol: "S6-COL-AM", pipelineCol: "S6-COL-AF" },
   { slug: "channel", key: "Channel Partners", label: "Channel Partners", bookingsCol: "S6-COL-AO", pipelineCol: "S6-COL-AJ" },
   { slug: "sdr", key: "SDR Activity", label: "SDR Activity", bookingsCol: "S6-COL-AN", pipelineCol: "S6-COL-AH" },
@@ -69,7 +72,7 @@ export function orderedSectionColumns(
   const def = SECTION_BY_KEY.get(sectionKey);
   const byId = new Map(all.map((c) => [c.col_id, c]));
   const sectionCols = all.filter((c) => c.section === sectionKey);
-  if (!def) return sectionCols;
+  if (!def || !def.pipelineCol) return sectionCols;
 
   const headIds = [def.bookingsCol, OPEN_PIPELINE_COL, def.pipelineCol];
   const head = headIds
